@@ -20,23 +20,74 @@ org  $c3f091
 
 ;===================================================================
 
+; Description (BG1):
+; Modify full buffer refresh-code. FF6 uses a back-buffer normally, but
+; there doesn't appear to be enough VRAM to house both a 512x256 front
+; and back buffer. It is not-clear with the back buffer is really necessary.
+; Moreover, it doesn't appear that two buffers fit into VRAM memory with a
+; 512x256 tilemap, so the secondary buffer must be disabled unless expanded
+; (128KB+) VRAM becomes supported in bsnes-hd.
+;
+; Internally, ff6 appears to use BG1 VRAM buffer addresses high-word with
+; ORing logic to determine what the BG1SC (2107) register should be set to.
+; The address is either 0x4800 or 0x4c000 depending on whether a buffer swap
+; has occurred. The pointer updates when opening doors or chests (and probably
+; during other events?). Exiting an area will reset the pointer to 0x4800. For
+; a 512x256 tilemap size, the low-bit of the BGSC1 register needs to be high.
+;
+; $91 - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+; $92 - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+; $0541 - low byte of current x-coordinate pivot.
+
+pushpc
+{
+    ;
+    org $c01f37             ; BG1
+    jsl dma_st_loc_bg1      ; Jump to routine to update the DMA store location if necessary.
+    org $c03f63
+    eor #$01                ; Keep BG1SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
+    nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
+pullpc
+
+dma_st_loc_bg1:
+{
+                ; Changes the VRAM store location if current character coordinate is in the second half of BG1 buffer.
+                ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
+                ; unteniable if the full buffer needs to be updated.
+    pha         ; 48        ; push original address.
+    lda $0541   ; ad4105    ; load register with vertical coordinate.
+    and #$10    ; 2910      ; normalize.
+    cmp #$00    ; c900      ; Compare.
+    bne +       ; d011      ; equal implies we shouldn't change our offset.
+    pla         ; 68        ; pop original address.
+    bra ++      ; 80??      ; Branch to end.
+    +:
+    pla         ; 68        ; pop original address.
+    lda #$4c    ; a94c      ; Load address for second half of BG1 buffer.
+    ++:
+    sta $92     ; 8592      ; Update DMA address.
+    rtl         ; 6b        ; Return.
+}
+
+;===================================================================
+
 ; Description (BG1, BG2, & BG3):
 ; Modify buffers to be 512x256.
 
 pushpc
 {
     ;
-    org $c005b7         ; BG1
+    org $c005b7             ; BG1
     lda #$49
-    org $c03f1f         ; BG1
+    org $c03f1f             ; BG1
     lda #$49
-    org $c005bc         ; BG2
+    org $c005bc             ; BG2
     lda #$51
-    org $c03f2d         ; BG2
+    org $c03f2d             ; BG2
     lda #$51
-    org $c005c1         ; BG3
+    org $c005c1             ; BG3
     lda #$59
-    org $c03f49         ; BG3
+    org $c03f49             ; BG3
     lda #$59
 }
 pullpc
@@ -49,9 +100,9 @@ pullpc
 pushpc
 {
     ;
-    org $c005d0 ; left coordinate.
+    org $c005d0             ; left coordinate.
     lda #$00
-    org $c005ec ; right right coordinate.
+    org $c005ec             ; right right coordinate.
     lda #$ff
 }
 pullpc
@@ -65,13 +116,13 @@ pullpc
 pushpc
 {
     ; Call-site modifications.
-    org $c02a72         ; BG1
+    org $c02a72             ; BG1
         jsl dma_bg1
         nop
-    org $c02af5         ; BG2
+    org $c02af5             ; BG2
         jsl dma_bg2
         nop
-    org $c02b78         ; BG3
+    org $c02b78             ; BG3
         jsl dma_bg3
         nop
 }
@@ -79,21 +130,21 @@ pullpc
 
 macro dma(dest, src)
                 ; DMA for second half of BG buffers.
-    lda #$01    ; a901     ; 1 -> a.
-    sta $420b   ; 8d0b42   ; Initiate DMA transfer.
-    stz $420b   ; 9c0b42   ; Clear DMA transfer flag.
-    stx $4305   ; 8e0543   ; set amount of bytes to transfer.
-    ldx <dest>  ; a2????   ; load second half of tile buffer.
-    stx $4302   ; 8e0243   ; set DMA dest addr.
-    rep #$20    ; c220     ; clear 8-bit accum mode.
-    lda <src>   ; a5??     ; load src addr.
-    clc         ; 18       ; clear carry.
-    adc #$0400  ; 690004   ; add 0x400 (offset to 2nd half of buf).
-    sta $2116   ; 8d1621   ; set DMA src addr.
-    lda #$0001  ; a90100   ; 1 -> a.
-    sep #$20    ; e220     ; set 8-bit accum mode.
-    sta $420b   ; 8d0b42   ; Initiate DMA transfer.
-    rtl         ; 6b       ; return.
+    lda #$01    ; a901      ; 1 -> a.
+    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
+    stz $420b   ; 9c0b42    ; Clear DMA transfer flag.
+    stx $4305   ; 8e0543    ; set amount of bytes to transfer.
+    ldx <dest>  ; a2????    ; load second half of tile buffer.
+    stx $4302   ; 8e0243    ; set DMA dest addr.
+    rep #$20    ; c220      ; clear 8-bit accum mode.
+    lda <src>   ; a5??      ; load src addr.
+    clc         ; 18        ; clear carry.
+    adc #$0400  ; 690004    ; add 0x400 (offset to 2nd half of buf).
+    sta $2116   ; 8d1621    ; set DMA src addr.
+    lda #$0001  ; a90100    ; 1 -> a.
+    sep #$20    ; e220      ; set 8-bit accum mode.
+    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
+    rtl         ; 6b        ; return.
 endmacro
 
 dma_bg1:
@@ -180,62 +231,62 @@ pullpc
 
 macro mod_offset()
     ; Add 64 to offset if dest offset >= 0x40.
-    sep #$20    ; e220     ; set 8-bit accum mode
-    pha         ; 48       ; push src offset.
-    tya         ; 98       ; y -> a.
-    cmp #$40    ; c940     ; compare to 0x40.
-    bcc +3      ; 9003     ; jump if less than 0x40.
-    clc         ; 18       ; clear carry.
-    adc #$40    ; 6940     ; add 0x40.
-    tay         ; a8       ; a -> y.
-    pla         ; 68       ; pop src offset.
+    sep #$20    ; e220      ; set 8-bit accum mode
+    pha         ; 48        ; push src offset.
+    tya         ; 98        ; y -> a.
+    cmp #$40    ; c940      ; compare to 0x40.
+    bcc +3      ; 9003      ; jump if less than 0x40.
+    clc         ; 18        ; clear carry.
+    adc #$40    ; 6940      ; add 0x40.
+    tay         ; a8        ; a -> y.
+    pla         ; 68        ; pop src offset.
 endmacro
 
 mod_offset_bg12:
 {
     %mod_offset()
-    asl         ; 0a       ; lshift src offset.
-    tax         ; aa       ; move src offset to x.
-    rep #$20    ; c220     ; clear 8-bit accum mode.
-    rtl         ; 6b       ; return
+    asl         ; 0a        ; lshift src offset.
+    tax         ; aa        ; move src offset to x.
+    rep #$20    ; c220      ; clear 8-bit accum mode.
+    rtl         ; 6b        ; return
 }
 
 mod_offset_bg3:
 {
     %mod_offset()
-    rep #$20    ; e220     ; clear 8-bit accum mode
-    asl         ; 0a       ; lshift tile data.
-    asl         ; 0a       ; lshift tile data.
-    ora $22     ; 0522     ; or tile data.
-    rtl         ; 6b       ; return
+    rep #$20    ; e220      ; clear 8-bit accum mode
+    asl         ; 0a        ; lshift tile data.
+    asl         ; 0a        ; lshift tile data.
+    ora $22     ; 0522      ; or tile data.
+    rtl         ; 6b        ; return
 }
 
 macro rev_offset()
     ; Reverse above routine.
     ; Subtract 64 from offset if dest offset >= 0x80.
-    sep #$20    ; e220     ; set 8-bit accum mode
-    cmp #$80    ; c980     ; compare to 0x80.
-    bcc +3      ; 9003     ; jump if less than 0x80.
-    sec         ; 38       ; set carry.
-    sbc #$40    ; e940     ; subtract 0x40.
+    sep #$20    ; e220      ; set 8-bit accum mode
+    cmp #$80    ; c980      ; compare to 0x80.
+    bcc +3      ; 9003      ; jump if less than 0x80.
+    sec         ; 38        ; set carry.
+    sbc #$40    ; e940      ; subtract 0x40.
 endmacro
 
 rev_offset_bg12:
 {
-    tdc         ; 7b       ; clear a.
-    sep #$21    ; e221     ; set 8-bit accum mode.
-    tya         ; 98       ; y -> a.
+    tdc         ; 7b        ; clear a.
+    sep #$21    ; e221      ; set 8-bit accum mode.
+    tya         ; 98        ; y -> a.
     %rev_offset()
-    sec         ; 38       ; set carry
-    rtl         ; 6b       ; return
+    sec         ; 38        ; set carry
+    rtl         ; 6b        ; return
 }
 
 rev_offset_bg3:
 {
     %rev_offset()
-    rep #$20    ; e220     ; clear 8-bit accum mode.
-    inc #4      ; 1a       ; inc dest addr.
-    rtl         ; 6b       ; return
+    rep #$20    ; e220      ; clear 8-bit accum mode.
+    inc #4      ; 1a        ; inc dest addr.
+    rtl         ; 6b        ; return
 }
 
 ;===================================================================
@@ -260,7 +311,7 @@ macro cam_start(dest)
     ; Add 16*4 to start horizontal scroll.
     and $1e     ; 251e
     clc         ; 18
-    adc #$0040  ; 694000 ; +16*4
+    adc #$0040  ; 694000    ; +16*4
     sta <dest>  ; 85??
     rtl         ; 6b
 endmacro
@@ -269,7 +320,7 @@ cam_start_bg1:
 {
     asl #04     ; 0a
     clc         ; 18
-    adc #$0040  ; 694000 ; +16*4
+    adc #$0040  ; 694000    ; +16*4
     rtl         ; 6b
 }
 
@@ -322,33 +373,33 @@ pullpc
 
 macro mod_col_index()
     ; Add 16 to column offset when moving left.
-    rep #$21    ; c221     ; clear 8-bit accum mode, clear carry flag.
-    lda $73     ; a573     ; taken from c02210 (indicates movement direction?)
-    adc $0547   ; 6d4705   ; negative flag implies left movement
-    bmi +14     ; 300e     ; jump for left direction to lda.w #$0.
-    lda #$0000  ; a90000   ; restore high bytes of A
-    sep #$20    ; e220     ; set 8-bit accum mode
-    lda $2a     ; a52a     ; Load column address.
-    clc         ; 18       ; Clear carry.
-    adc #$10    ; 6910     ; Add 16 to the column.
-    sta $2a     ; 852a     ; Store result.
-    bra +5      ; 8005     ; Jump for right direction to lda #$10.
-    lda #$0000  ; a90000   ; restore high bytes of A
-    sep #$20    ; e220     ; set 8-bit accum mode
-    lda #$10    ; a910     ; Restore original A low byte value.
+    rep #$21    ; c221      ; clear 8-bit accum mode, clear carry flag.
+    lda $73     ; a573      ; taken from c02210 (indicates movement direction?)
+    adc $0547   ; 6d4705    ; negative flag implies left movement
+    bmi +14     ; 300e      ; jump for left direction to lda.w #$0.
+    lda #$0000  ; a90000    ; restore high bytes of A
+    sep #$20    ; e220      ; set 8-bit accum mode
+    lda $2a     ; a52a      ; Load column address.
+    clc         ; 18        ; Clear carry.
+    adc #$10    ; 6910      ; Add 16 to the column.
+    sta $2a     ; 852a      ; Store result.
+    bra +5      ; 8005      ; Jump for right direction to lda #$10.
+    lda #$0000  ; a90000    ; restore high bytes of A
+    sep #$20    ; e220      ; set 8-bit accum mode
+    lda #$10    ; a910      ; Restore original A low byte value.
 endmacro
 
 mod_col_index_bg12:
 {
     %mod_col_index()
-    rtl         ; 6b       ; Return
+    rtl         ; 6b        ; Return
 }
 
 mod_col_index_bg3:
 {
     %mod_col_index()
-    sta $1b     ; 851b     ; Store original A.
-    rtl         ; 6b       ; Return
+    sta $1b     ; 851b      ; Store original A.
+    rtl         ; 6b        ; Return
 }
 
 ;===================================================================
@@ -360,6 +411,11 @@ mod_col_index_bg3:
 ; keeps placing data from columns 0 to 31. Internally, it preloads
 ; 0x48XX address which needs to be swapped to 0x4CXX for loading
 ; in the correct columns
+;
+; $94 - high byte of BG1 DMA buffer address for x-movement updates.
+; $9a - high byte of BG2 DMA buffer address for x-movement updates.
+; $a2 - high byte of BG3 DMA buffer address for x-movement updates.
+; $0541 - low byte of current x-coordinate pivot.
 
 pushpc
 {
@@ -374,29 +430,29 @@ pushpc
 pullpc
 
 macro mod_st_loc(src, dest1, dest2)
-    ; Modify store location for certain coordinate ranges (32-63, 96-127, etc.).
-    pha         ; 48       ; push a
-    rep #$21    ; c221     ; clear 8-bit accum mode, clear carry flag.
-    lda $73     ; a573     ; taken from c02210 (indicates movement direction?)
-    adc $0547   ; 6d4705   ; negative flag implies left movement
-    bmi +10     ; 300a     ; jump for left direction
-    lda #$0000  ; a90000   ; clear A
-    sep #$20    ; e220     ; set 8-bit accum mode
-    lda $0541   ; ad4105   ; register with vertical coordinate
-    bra +9      ; 8009     ; jump for right direction
+    ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
+    pha         ; 48        ; push a
+    rep #$21    ; c221      ; clear 8-bit accum mode, clear carry flag.
+    lda $73     ; a573      ; taken from c02210 (indicates movement direction?)
+    adc $0547   ; 6d4705    ; negative flag implies left movement
+    bmi +10     ; 300a      ; jump for left direction
+    lda #$0000  ; a90000    ; clear A
+    sep #$20    ; e220      ; set 8-bit accum mode
+    lda $0541   ; ad4105    ; register with vertical coordinate
+    bra +9      ; 8009      ; jump for right direction
     lda #$0000  ; a90000
-    sep #$20    ; e220     ; set 8-bit accum mode
-    lda $0541   ; ad4105   ; register with vertical coordinate
-    inc         ; 1a       ; add 1 if moving in left direction
-    sec         ; 38       ; set carry for subtraction
-    sbc #$8     ; e908     ; normalize subtract 8
-    and #$10    ; 2910     ; normalize
-    cmp #$00    ; c900     ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
+    sep #$20    ; e220      ; set 8-bit accum mode
+    lda $0541   ; ad4105    ; register with vertical coordinate
+    inc         ; 1a        ; add 1 if moving in left direction
+    sec         ; 38        ; set carry for subtraction
+    sbc #$8     ; e908      ; normalize subtract 8
+    and #$10    ; 2910      ; normalize
+    cmp #$00    ; c900      ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
     bne +3      ; d003
     pla         ; 68 ; pop a
     bra +3      ; 8003
     pla         ; 68
-    lda <src>   ; a9??     ; Statically determined VRAM location loaded from a register for some reason normally.
+    lda <src>   ; a9??      ; Statically determined VRAM location loaded from a register for some reason normally.
     sta <dest1> ; 85??
     sta <dest2> ; 85??
     rtl         ; 6b
@@ -404,15 +460,15 @@ endmacro
 
 mod_st_loc_bg1:
 {
-    %mod_st_loc(#$4c, $94, $96)
+    %mod_st_loc(#$4c, $94, $96) ; 0x4c is the high-byte of the second half of buffer.
 }
 
 mod_st_loc_bg2:
 {
-    %mod_st_loc(#$54, $9a, $9c)
+    %mod_st_loc(#$54, $9a, $9c) ; 0x54 is the high-byte of the second half of buffer.
 }
 
 mod_st_loc_bg3:
 {
-    %mod_st_loc(#$5c, $a0, $a2)
+    %mod_st_loc(#$5c, $a0, $a2) ; 0x5c is the high-byte of the second half of buffer.
 }
