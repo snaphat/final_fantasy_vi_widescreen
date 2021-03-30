@@ -103,7 +103,7 @@ full_dma_cpy_bg1:
                 ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
                 ; unteniable if the full buffer needs to be updated.
     pha         ; 48        ; push original address.
-    lda $0970   ; ad7009    ; load register with character x-coordinate.
+    lda $0970   ; ad7090    ; load register with character x-coordinate.
     and #$10    ; 2910      ; normalize.
     cmp #$00    ; c900      ; Compare.
     bne +       ; d011      ; equal implies we shouldn't change our offset.
@@ -481,19 +481,14 @@ pullpc
 macro col_dma_cpy(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
     pha         ; 48        ; push a
-    rep #$21    ; c221      ; clear 8-bit accum mode, clear carry flag.
-    lda $73     ; a573      ; taken from c02210 (indicates movement direction?)
-    adc $0547   ; 6d4705    ; negative flag implies left movement
-    bmi +       ; 300a      ; jump for left direction
+    lda $0974   ; ad7094    ; Movement direction.
+    cmp #$02    ; c902      ; Compare - 0x2 is right direction.
+    bne +       ; 3005      ; jump for left direction
     ; right direction:
-    lda #$0000  ; a90000    ; clear A
-    sep #$20    ; e220      ; set 8-bit accum mode
     lda $0541   ; ad4105    ; register with vertical pivot coordinate.
-    bra ++      ; 8009      ; jump for right direction
+    bra ++      ; 8004      ; jump for right direction
     +:
     ; left direction:
-    lda #$0000  ; a90000
-    sep #$20    ; e220      ; set 8-bit accum mode
     lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     inc         ; 1a        ; add 1 if moving in left direction
     ++:
