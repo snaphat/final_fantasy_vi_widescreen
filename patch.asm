@@ -423,22 +423,15 @@ pullpc
 
 macro col_tile_ld()
     ; Add 16 to column offset when moving left.
-    rep #$21    ; c221      ; clear 8-bit accum mode, clear carry flag.
-    lda $73     ; a573      ; taken from c02210 (indicates movement direction?)
-    adc $0547   ; 6d4705    ; negative flag implies left movement
-    bmi +       ; 300e      ; jump for right direction.
+    lda $0974   ; ad7094    ; Movement direction.
+    cmp #$02    ; c902      ; Compare - 0x2 is right direction.
+    bne .end    ; d007      ; jump for right direction.
     ; Left direction:
-    lda #$0000  ; a90000    ; restore high bytes of A
-    sep #$20    ; e220      ; set 8-bit accum mode
     lda $2a     ; a52a      ; Load column address.
     clc         ; 18        ; Clear carry.
     adc #$10    ; 6910      ; Add 16 to the column.
     sta $2a     ; 852a      ; Store result.
-    bra .end    ; 8005      ; Jump to end.
-    +:
     ; Right direction:
-    lda #$0000  ; a90000    ; restore high bytes of A
-    sep #$20    ; e220      ; set 8-bit accum mode
     .end:
     lda #$10    ; a910      ; Restore original A low byte value.
 endmacro
@@ -483,7 +476,7 @@ macro col_dma_cpy(src, dest1, dest2)
     pha         ; 48        ; push a
     lda $0974   ; ad7094    ; Movement direction.
     cmp #$02    ; c902      ; Compare - 0x2 is right direction.
-    bne +       ; 3005      ; jump for left direction
+    bne +       ; d005      ; jump for left direction
     ; right direction:
     lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     bra ++      ; 8004      ; jump for right direction
