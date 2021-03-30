@@ -5,6 +5,26 @@ fill 3951
 
 org  $c3f091
 
+
+;===================================================================
+; Registers:
+; $91   - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+; $94   - high byte of BG1 DMA buffer address for x-movement updates.
+; $9a   - high byte of BG2 DMA buffer address for x-movement updates.
+; $a2   - high byte of BG3 DMA buffer address for x-movement updates.
+; $0541 - BG1 current x-coordinate pivot.
+; $0542 - BG1 current y-coordinate pivot.
+; $0543 - BG2 current x-coordinate pivot.
+; $0544 - BG2 current y-coordinate pivot.
+; $0545 - BG3 current x-coordinate pivot.
+; $0546 - BG3 current y-coordinate pivot.
+; $0960 - exact character offset in pixels?
+; $0970 - character x position
+; $0971 - character y position.
+; $0974 - current movement direction.
+; $0975 - last movement direction.
+;
 ;===================================================================
 
 ; Description:
@@ -34,37 +54,65 @@ org  $c3f091
 ; has occurred. The pointer updates when opening doors or chests (and probably
 ; during other events?). Exiting an area will reset the pointer to 0x4800. For
 ; a 512x256 tilemap size, the low-bit of the BGSC1 register needs to be high.
-;
-; $91 - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
-; $92 - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
-; $0541 - low byte of current x-coordinate pivot.
 
 pushpc
 {
-    ;
-    org $c01f37             ; BG1
-    jsl dma_st_loc_bg1      ; Jump to routine to update the DMA store location if necessary.
-    org $c03f63
+    org $c03f63             ; BG1
     eor #$01                ; Keep BG1SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
     nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
+    org $c01f6b             ; BG1
+    jsl full_tile_ld_bg1    ; Modify column load locations.
+    org $c01f37             ; BG1
+    jsl full_dma_cpy_bg1    ; Jump to routine to update the DMA store location if necessary.
 pullpc
 
-dma_st_loc_bg1:
+full_tile_ld_bg1:
+{
+                ; Modify column location (+16) for certain coordinate ranges depending on whether the character
+                ; is in the left or right half of the extended buffer. This is to fix the broken updates.
+    phy         ; 5a        ; store dest addr for later.
+    ldy #$0000  ; a00000    ; load additional offset of 0.
+    lda $92     ; a592      ; Load buffer location (to determine if we are in left or right half of buffer).
+    cmp #$4c    ; c948      ; equal implies we are in the left half of the buffer.
+    bne +       ; d00a      ; branch if in second half of of buffer.
+    ; Left buffer logic check:
+    lda $2a     ; a52a      ; load tile column index.
+    and #$10    ; 2910      ; normalize.
+    cmp #$00    ; c900      ; 1 implies we need to +16 the tile index to account for buffer changes.
+    beq .add    ; f00a      ; branch if tile index does need to be incremented.
+    bra .end    ; 800b      ; branch if tile index doesn't need to be incremented.
+    ; Right buffer logic check (inverted logic):
+    +:
+    lda $2a     ; a52a      ; load column index.
+    and #$10    ; 2910      ; normalize.
+    cmp #$00    ; c900      ; 0 implies we need to +16 the tile index to account for buffer changes.
+    beq .end    ; d003      ; branch if tile index doesn't need to be incremented.
+    .add:
+    ldy #$0010  ; a01000    ; add 16 to load offset.
+    .end:
+    lda ($2a), y; b12a      ; load tile index.
+    ply         ; 7a        ; restore  dest addr.
+    rep #$20    ; c220      ; clear 8-bit accum mode.
+    rtl         ; 6b        ; return.
+}
+
+
+full_dma_cpy_bg1:
 {
                 ; Changes the VRAM store location if current character coordinate is in the second half of BG1 buffer.
                 ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
                 ; unteniable if the full buffer needs to be updated.
     pha         ; 48        ; push original address.
-    lda $0541   ; ad4105    ; load register with vertical coordinate.
+    lda $0970   ; ad7009    ; load register with character x-coordinate.
     and #$10    ; 2910      ; normalize.
     cmp #$00    ; c900      ; Compare.
     bne +       ; d011      ; equal implies we shouldn't change our offset.
     pla         ; 68        ; pop original address.
-    bra ++      ; 80??      ; Branch to end.
+    bra .end    ; 80??      ; Branch to end.
     +:
     pla         ; 68        ; pop original address.
     lda #$4c    ; a94c      ; Load address for second half of BG1 buffer.
-    ++:
+    .end:
     sta $92     ; 8592      ; Update DMA address.
     rtl         ; 6b        ; Return.
 }
@@ -117,13 +165,13 @@ pushpc
 {
     ; Call-site modifications.
     org $c02a72             ; BG1
-        jsl dma_bg1
+        jsl row_dma_cpy_bg1
         nop
     org $c02af5             ; BG2
-        jsl dma_bg2
+        jsl row_dma_cpy_bg2
         nop
     org $c02b78             ; BG3
-        jsl dma_bg3
+        jsl row_dma_cpy_bg3
         nop
 }
 pullpc
@@ -147,17 +195,17 @@ macro dma(dest, src)
     rtl         ; 6b        ; return.
 endmacro
 
-dma_bg1:
+row_dma_cpy_bg1:
 {
     %dma(#$da40, $91)
 }
 
-dma_bg2:
+row_dma_cpy_bg2:
 {
     %dma(#$e240, $97)
 }
 
-dma_bg3:
+row_dma_cpy_bg3:
 {
     %dma(#$ea40, $9d)
 }
@@ -166,7 +214,7 @@ dma_bg3:
 
 ; Description (BG1 & BG2 & BG3):
 ; Vertical (y) movement modification...
-; Preload additional tile data.
+; Preload additional row tile data.
 ; This adds new code which inserts additional
 ; tile data into new spots of RAM located
 ; contiguously below the original buffers.
@@ -200,60 +248,61 @@ pushpc
     and #$ff7f
     ; Call-site modifications: Jump to offset modification routines.
     org $c021a7             ; BG1
-    jsl mod_offset_bg12
+    jsl row_tile_ld_bg12
     org $c021d9             ; BG1
-    jsl mod_offset_bg12
+    jsl row_tile_ld_bg12
     org $c02322             ; BG2
-    jsl mod_offset_bg12
+    jsl row_tile_ld_bg12
     org $c02354             ; BG2
-    jsl mod_offset_bg12
+    jsl row_tile_ld_bg12
     org $c024e5             ; BG3
-    jsl mod_offset_bg3
+    jsl row_tile_ld_bg3
     org $c024fb             ; BG3
-    jsl mod_offset_bg3
+    jsl row_tile_ld_bg3
     org $c02511             ; BG3
-    jsl mod_offset_bg3
+    jsl row_tile_ld_bg3
     org $c02527             ; BG3
-    jsl mod_offset_bg3
+    jsl row_tile_ld_bg3
     ; Call-site modifications: Jump to offset reverse routines.
     org $c021c3             ; BG1
-    jsl rev_offset_bg12
+    jsl rev_row_tile_ld12
     org $c021f5             ; BG1
-    jsl rev_offset_bg12
+    jsl rev_row_tile_ld12
     org $c0233e             ; BG2
-    jsl rev_offset_bg12
+    jsl rev_row_tile_ld12
     org $c02370             ; BG2
-    jsl rev_offset_bg12
+    jsl rev_row_tile_ld12
     org $c0253b             ; BG3
-    jsl rev_offset_bg3
+    jsl rev_row_tile_ld3
 }
 pullpc
 
-macro mod_offset()
+macro row_tile_ld()
     ; Add 64 to offset if dest offset >= 0x40.
     sep #$20    ; e220      ; set 8-bit accum mode
     pha         ; 48        ; push src offset.
     tya         ; 98        ; y -> a.
     cmp #$40    ; c940      ; compare to 0x40.
-    bcc +3      ; 9003      ; jump if less than 0x40.
+    bcc .end    ; 9003      ; jump if less than 0x40.
     clc         ; 18        ; clear carry.
     adc #$40    ; 6940      ; add 0x40.
+    .end:
     tay         ; a8        ; a -> y.
     pla         ; 68        ; pop src offset.
 endmacro
 
-mod_offset_bg12:
+row_tile_ld_bg12:
 {
-    %mod_offset()
+    %row_tile_ld()
     asl         ; 0a        ; lshift src offset.
     tax         ; aa        ; move src offset to x.
     rep #$20    ; c220      ; clear 8-bit accum mode.
     rtl         ; 6b        ; return
 }
 
-mod_offset_bg3:
+row_tile_ld_bg3:
 {
-    %mod_offset()
+    %row_tile_ld()
     rep #$20    ; e220      ; clear 8-bit accum mode
     asl         ; 0a        ; lshift tile data.
     asl         ; 0a        ; lshift tile data.
@@ -261,29 +310,30 @@ mod_offset_bg3:
     rtl         ; 6b        ; return
 }
 
-macro rev_offset()
+macro rev_row_tile_ld()
     ; Reverse above routine.
     ; Subtract 64 from offset if dest offset >= 0x80.
     sep #$20    ; e220      ; set 8-bit accum mode
     cmp #$80    ; c980      ; compare to 0x80.
-    bcc +3      ; 9003      ; jump if less than 0x80.
+    bcc .end    ; 9003      ; jump if less than 0x80.
     sec         ; 38        ; set carry.
     sbc #$40    ; e940      ; subtract 0x40.
+    .end:
 endmacro
 
-rev_offset_bg12:
+rev_row_tile_ld12:
 {
     tdc         ; 7b        ; clear a.
     sep #$21    ; e221      ; set 8-bit accum mode.
     tya         ; 98        ; y -> a.
-    %rev_offset()
+    %rev_row_tile_ld()
     sec         ; 38        ; set carry
     rtl         ; 6b        ; return
 }
 
-rev_offset_bg3:
+rev_row_tile_ld3:
 {
-    %rev_offset()
+    %rev_row_tile_ld()
     rep #$20    ; e220      ; clear 8-bit accum mode.
     inc #4      ; 1a        ; inc dest addr.
     rtl         ; 6b        ; return
@@ -353,7 +403,7 @@ pullpc
 
 ; Description (BG1, BG2,& BG3):
 ; Horizontal (x) movement modification for BG1, BG2, & BG3...
-; Modify Load location of tiles when moving right (+16 columns).
+; Modify Load location of column tiles when moving right (+16 columns).
 ; Original logic is used when moving left.
 ; This expands the logic to load data +16 columns from what it
 ; originally did when moving left. The data will then get picked up
@@ -363,41 +413,45 @@ pushpc
 {
     ; Call-site modifications
     org $c02247             ; BG1
-    jsl mod_col_index_bg12
+    jsl col_tile_ld_bg12
     org $c023c2             ; BG2
-    jsl mod_col_index_bg12
+    jsl col_tile_ld_bg12
     org $c0259c             ; BG3
-    jsl mod_col_index_bg3
+    jsl col_tile_ld_bg3
 }
 pullpc
 
-macro mod_col_index()
+macro col_tile_ld()
     ; Add 16 to column offset when moving left.
     rep #$21    ; c221      ; clear 8-bit accum mode, clear carry flag.
     lda $73     ; a573      ; taken from c02210 (indicates movement direction?)
     adc $0547   ; 6d4705    ; negative flag implies left movement
-    bmi +14     ; 300e      ; jump for left direction to lda.w #$0.
+    bmi +       ; 300e      ; jump for right direction.
+    ; Left direction:
     lda #$0000  ; a90000    ; restore high bytes of A
     sep #$20    ; e220      ; set 8-bit accum mode
     lda $2a     ; a52a      ; Load column address.
     clc         ; 18        ; Clear carry.
     adc #$10    ; 6910      ; Add 16 to the column.
     sta $2a     ; 852a      ; Store result.
-    bra +5      ; 8005      ; Jump for right direction to lda #$10.
+    bra .end    ; 8005      ; Jump to end.
+    +:
+    ; Right direction:
     lda #$0000  ; a90000    ; restore high bytes of A
     sep #$20    ; e220      ; set 8-bit accum mode
+    .end:
     lda #$10    ; a910      ; Restore original A low byte value.
 endmacro
 
-mod_col_index_bg12:
+col_tile_ld_bg12:
 {
-    %mod_col_index()
+    %col_tile_ld()
     rtl         ; 6b        ; Return
 }
 
-mod_col_index_bg3:
+col_tile_ld_bg3:
 {
-    %mod_col_index()
+    %col_tile_ld()
     sta $1b     ; 851b      ; Store original A.
     rtl         ; 6b        ; Return
 }
@@ -406,69 +460,70 @@ mod_col_index_bg3:
 
 ; Description (BG1, BG2, & BG3):
 ; Horizontal (x) movement modification for BG1, BG2, & BG3...
-; Modify the store location for VRAM to place data in the second half
+; Modify the store location for VRAM to place column tiles in the second half
 ; of the buffer (16-63, 96-127, etc.) for certain coordinate ranges. Otherwise, it
 ; keeps placing data from columns 0 to 31. Internally, it preloads
 ; 0x48XX address which needs to be swapped to 0x4CXX for loading
 ; in the correct columns
-;
-; $94 - high byte of BG1 DMA buffer address for x-movement updates.
-; $9a - high byte of BG2 DMA buffer address for x-movement updates.
-; $a2 - high byte of BG3 DMA buffer address for x-movement updates.
-; $0541 - low byte of current x-coordinate pivot.
 
 pushpc
 {
     ; Call-site modifications
     org $c022ca             ; BG1
-    jsl mod_st_loc_bg1
+    jsl col_dma_cpy_bg1
     org $c02449             ; BG2
-    jsl mod_st_loc_bg2
+    jsl col_dma_cpy_bg2
     org $c02657             ; BG3
-    jsl mod_st_loc_bg3
+    jsl col_dma_cpy_bg3
 }
 pullpc
 
-macro mod_st_loc(src, dest1, dest2)
+macro col_dma_cpy(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
     pha         ; 48        ; push a
     rep #$21    ; c221      ; clear 8-bit accum mode, clear carry flag.
     lda $73     ; a573      ; taken from c02210 (indicates movement direction?)
     adc $0547   ; 6d4705    ; negative flag implies left movement
-    bmi +10     ; 300a      ; jump for left direction
+    bmi +       ; 300a      ; jump for left direction
+    ; right direction:
     lda #$0000  ; a90000    ; clear A
     sep #$20    ; e220      ; set 8-bit accum mode
-    lda $0541   ; ad4105    ; register with vertical coordinate
-    bra +9      ; 8009      ; jump for right direction
+    lda $0541   ; ad4105    ; register with vertical pivot coordinate.
+    bra ++      ; 8009      ; jump for right direction
+    +:
+    ; left direction:
     lda #$0000  ; a90000
     sep #$20    ; e220      ; set 8-bit accum mode
-    lda $0541   ; ad4105    ; register with vertical coordinate
+    lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     inc         ; 1a        ; add 1 if moving in left direction
+    ++:
     sec         ; 38        ; set carry for subtraction
     sbc #$8     ; e908      ; normalize subtract 8
     and #$10    ; 2910      ; normalize
     cmp #$00    ; c900      ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
-    bne +3      ; d003
-    pla         ; 68 ; pop a
-    bra +3      ; 8003
-    pla         ; 68
-    lda <src>   ; a9??      ; Statically determined VRAM location loaded from a register for some reason normally.
+    bne .upd    ; d003
+    pla         ; 68        ; restore a.
+    bra .end    ; 8003
+    .upd:
+    pla         ; 68        ; drop a.
+    lda <src>   ; a9??      ; Load modified vram location.
+    .end:
     sta <dest1> ; 85??
     sta <dest2> ; 85??
     rtl         ; 6b
 endmacro
 
-mod_st_loc_bg1:
+col_dma_cpy_bg1:
 {
-    %mod_st_loc(#$4c, $94, $96) ; 0x4c is the high-byte of the second half of buffer.
+    %col_dma_cpy(#$4c, $94, $96) ; 0x4c is the high-byte of the second half of buffer.
 }
 
-mod_st_loc_bg2:
+col_dma_cpy_bg2:
 {
-    %mod_st_loc(#$54, $9a, $9c) ; 0x54 is the high-byte of the second half of buffer.
+    %col_dma_cpy(#$54, $9a, $9c) ; 0x54 is the high-byte of the second half of buffer.
 }
 
-mod_st_loc_bg3:
+col_dma_cpy_bg3:
 {
-    %mod_st_loc(#$5c, $a0, $a2) ; 0x5c is the high-byte of the second half of buffer.
+    %col_dma_cpy(#$5c, $a0, $a2) ; 0x5c is the high-byte of the second half of buffer.
 }
