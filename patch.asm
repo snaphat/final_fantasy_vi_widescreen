@@ -8,6 +8,7 @@ org  $c3f091
 
 ;===================================================================
 ; Registers:
+;
 ; $91   - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $94   - high byte of BG1 DMA buffer address for x-movement updates.
@@ -25,10 +26,14 @@ org  $c3f091
 ; $0974 - current movement direction.
 ; $0975 - last movement direction.
 ;
-;===================================================================
 
+;===================================================================
 ; Description:
-; Reserve stack space for our own usage. (Perhaps unnecessary)
+;
+; Stack modifications...
+;
+; - Reserve stack space for patch usage. (Perhaps unnecessary)
+;
 
 ;pushpc
 ;{
@@ -39,14 +44,104 @@ org  $c3f091
 ;pullpc
 
 ;===================================================================
+; Description (BG1, BG2, & BG3):
+;
+; Buffer size modifications...
+;
+; - Increase buffer size.
+; - Remove pixel masks for screen edges.
+;
 
+pushpc
+{
+    ; Modify buffers to be 512x256.
+    org $c005b7             ; BG1
+    lda #$49
+    org $c03f1f             ; BG1
+    lda #$49
+    org $c005bc             ; BG2
+    lda #$51
+    org $c03f2d             ; BG2
+    lda #$51
+    org $c005c1             ; BG3
+    lda #$59
+    org $c03f49             ; BG3
+    lda #$59
+    ; Remove pixel masking along edges.
+    org $c005d0             ; left coordinate.
+    lda #$00
+    org $c005ec             ; right right coordinate.
+    lda #$ff
+}
+pullpc
+
+;===================================================================
+; Description (BG1, BG2, & BG3):
+;
+; Scrolling modifications...
+;
+; - Start x-scrolling when character is 13 columns into the map.
+; - Change x-camera start to +16*4 coordinates.
+;
+
+pushpc
+{
+    ; Changes tilemap scrolling to begin at 13 tiles in instead of 8.
+    org $c07e32 ; BG1, BG2, BG3
+    nop         ; ea
+    cmp #$0c    ; c90c      ; Switch comparison to 13.
+    ; Call-site modifications
+    org $c01b87             ; BG1
+    jsl cam_start_bg1
+    org $c01bdc             ; BG2
+    jsl cam_start_bg2
+    org $c01c62             ; BG3
+    jsl cam_start_bg3
+}
+pullpc
+
+macro cam_start(dest)
+    ; Add 16*4 to start horizontal scroll.
+    and $1e     ; 251e
+    clc         ; 18
+    adc #$0040  ; 694000    ; +16*4
+    sta <dest>  ; 85??
+    rtl         ; 6b
+endmacro
+
+cam_start_bg1:
+{
+    asl #04     ; 0a
+    clc         ; 18
+    adc #$0040  ; 694000    ; +16*4
+    rtl         ; 6b
+}
+
+cam_start_bg2:
+{
+    %cam_start($64)
+}
+
+cam_start_bg3:
+{
+    %cam_start($6c)
+}
+
+;===================================================================
 ; Description (BG1):
-; Modify full buffer refresh-code. FF6 uses a back-buffer normally, but
-; there doesn't appear to be enough VRAM to house both a 512x256 front
-; and back buffer. It is not-clear with the back buffer is really necessary.
-; Moreover, it doesn't appear that two buffers fit into VRAM memory with a
-; 512x256 tilemap, so the secondary buffer must be disabled unless expanded
-; (128KB+) VRAM becomes supported in bsnes-hd.
+;
+; full buffer update modifications...
+;
+; - Disable buffer swapping during full screen buffer updates.
+; - Keep BG in 512x256 mode during full screen buffer updates.
+; - Modify tile data loaded for wrap around areas.
+; - Modify DMA location depending on where character is located on the screen.
+;
+; FF6 uses a back-buffer normally, but there doesn't appear to be enough
+; VRAM to house both a 512x256 front and back buffer. It is not-clear with
+; the back buffer is really necessary. Moreover, it doesn't appear that two
+; buffers fit into VRAM memory with a 512x256 tilemap, so the secondary buffer
+; must be disabled unless expanded (128KB+) VRAM becomes supported in bsnes-hd.
 ;
 ; Internally, ff6 appears to use BG1 VRAM buffer addresses high-word with
 ; ORing logic to determine what the BG1SC (2107) register should be set to.
@@ -54,6 +149,7 @@ org  $c3f091
 ; has occurred. The pointer updates when opening doors or chests (and probably
 ; during other events?). Exiting an area will reset the pointer to 0x4800. For
 ; a 512x256 tilemap size, the low-bit of the BGSC1 register needs to be high.
+;
 
 pushpc
 {
@@ -66,10 +162,12 @@ pushpc
     jsl full_dma_cpy_bg1    ; Jump to routine to update the DMA store location if necessary.
 pullpc
 
+;----
+
 full_tile_ld_bg1:
 {
-                ; Modify column location (+16) for certain coordinate ranges depending on whether the character
-                ; is in the left or right half of the extended buffer. This is to fix the broken updates.
+    ; Modify column location (+16) for certain coordinate ranges depending on whether the character
+    ; is in the left or right half of the extended buffer. The original logic is broken due to doubling buffer sizes.
     phy         ; 5a        ; store dest addr for later.
     ldy #$0000  ; a00000    ; load additional offset of 0.
     lda $92     ; a592      ; Load buffer location (to determine if we are in left or right half of buffer).
@@ -96,12 +194,13 @@ full_tile_ld_bg1:
     rtl         ; 6b        ; return.
 }
 
+;----
 
 full_dma_cpy_bg1:
 {
-                ; Changes the VRAM store location if current character coordinate is in the second half of BG1 buffer.
-                ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
-                ; unteniable if the full buffer needs to be updated.
+    ; Changes the VRAM store location if current character coordinate is in the second half of BG1 buffer.
+    ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
+    ; unteniable if the full 512x256 buffer needs to be updated.
     pha         ; 48        ; push original address.
     lda $0970   ; ad7090    ; load register with character x-coordinate.
     and #$10    ; 2910      ; normalize.
@@ -117,107 +216,15 @@ full_dma_cpy_bg1:
     rtl         ; 6b        ; Return.
 }
 
-;===================================================================
 
+;===================================================================
 ; Description (BG1, BG2, & BG3):
-; Modify buffers to be 512x256.
-
-pushpc
-{
-    ;
-    org $c005b7             ; BG1
-    lda #$49
-    org $c03f1f             ; BG1
-    lda #$49
-    org $c005bc             ; BG2
-    lda #$51
-    org $c03f2d             ; BG2
-    lda #$51
-    org $c005c1             ; BG3
-    lda #$59
-    org $c03f49             ; BG3
-    lda #$59
-}
-pullpc
-
-;===================================================================
-
-; Description (BG1, BG2, & BG3):
-; Remove pixel masking along edges.
-
-pushpc
-{
-    ;
-    org $c005d0             ; left coordinate.
-    lda #$00
-    org $c005ec             ; right right coordinate.
-    lda #$ff
-}
-pullpc
-
-;===================================================================
-
-; Description (BG1, BG2, & BG3):
-; Vertical (y) movement modification...
-; Insert additional DMA for writing second half of TileMap to VRAM.
-
-pushpc
-{
-    ; Call-site modifications.
-    org $c02a72             ; BG1
-        jsl row_dma_cpy_bg1
-        nop
-    org $c02af5             ; BG2
-        jsl row_dma_cpy_bg2
-        nop
-    org $c02b78             ; BG3
-        jsl row_dma_cpy_bg3
-        nop
-}
-pullpc
-
-macro dma(dest, src)
-                ; DMA for second half of BG buffers.
-    lda #$01    ; a901      ; 1 -> a.
-    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
-    stz $420b   ; 9c0b42    ; Clear DMA transfer flag.
-    stx $4305   ; 8e0543    ; set amount of bytes to transfer.
-    ldx <dest>  ; a2????    ; load second half of tile buffer.
-    stx $4302   ; 8e0243    ; set DMA dest addr.
-    rep #$20    ; c220      ; clear 8-bit accum mode.
-    lda <src>   ; a5??      ; load src addr.
-    clc         ; 18        ; clear carry.
-    adc #$0400  ; 690004    ; add 0x400 (offset to 2nd half of buf).
-    sta $2116   ; 8d1621    ; set DMA src addr.
-    lda #$0001  ; a90100    ; 1 -> a.
-    sep #$20    ; e220      ; set 8-bit accum mode.
-    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
-    rtl         ; 6b        ; return.
-endmacro
-
-row_dma_cpy_bg1:
-{
-    %dma(#$da40, $91)
-}
-
-row_dma_cpy_bg2:
-{
-    %dma(#$e240, $97)
-}
-
-row_dma_cpy_bg3:
-{
-    %dma(#$ea40, $9d)
-}
-
-;===================================================================
-
-; Description (BG1 & BG2 & BG3):
-; Vertical (y) movement modification...
-; Preload additional row tile data.
-; This adds new code which inserts additional
-; tile data into new spots of RAM located
-; contiguously below the original buffers.
+; Row/Vertical/y movement modifications...
+;
+; - Preload additional row tile data into new spots of RAM located
+;   contigously below the original buffer spots.
+; - Insert an additional DMA for writing second half of TileMaps to VRAM.
+;
 
 pushpc
 {
@@ -274,8 +281,20 @@ pushpc
     jsl rev_row_tile_ld12
     org $c0253b             ; BG3
     jsl rev_row_tile_ld3
+    ; DMA Copy modifications:
+    org $c02a72             ; BG1
+    jsl row_dma_cpy_bg1
+    nop
+    org $c02af5             ; BG2
+    jsl row_dma_cpy_bg2
+    nop
+    org $c02b78             ; BG3
+    jsl row_dma_cpy_bg3
+    nop
 }
 pullpc
+
+;----
 
 macro row_tile_ld()
     ; Add 64 to offset if dest offset >= 0x40.
@@ -310,6 +329,8 @@ row_tile_ld_bg3:
     rtl         ; 6b        ; return
 }
 
+;----
+
 macro rev_row_tile_ld()
     ; Reverse above routine.
     ; Subtract 64 from offset if dest offset >= 0x80.
@@ -339,87 +360,82 @@ rev_row_tile_ld3:
     rtl         ; 6b        ; return
 }
 
-;===================================================================
+;----
 
-; Description (BG1, BG2, & BG3):
-; Horizontal (x) movement modification...
-; Changes camera start to +16*4
-
-pushpc
-{
-    ; Call-site modifications
-    org $c01b87             ; BG1
-    jsl cam_start_bg1
-    org $c01bdc             ; BG2
-    jsl cam_start_bg2
-    org $c01c62             ; BG3
-    jsl cam_start_bg3
-}
-pullpc
-
-macro cam_start(dest)
-    ; Add 16*4 to start horizontal scroll.
-    and $1e     ; 251e
-    clc         ; 18
-    adc #$0040  ; 694000    ; +16*4
-    sta <dest>  ; 85??
-    rtl         ; 6b
+macro dma(dest, src)
+                ; DMA for second half of BG buffers.
+    lda #$01    ; a901      ; 1 -> a.
+    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
+    stz $420b   ; 9c0b42    ; Clear DMA transfer flag.
+    stx $4305   ; 8e0543    ; set amount of bytes to transfer.
+    ldx <dest>  ; a2????    ; load second half of tile buffer.
+    stx $4302   ; 8e0243    ; set DMA dest addr.
+    rep #$20    ; c220      ; clear 8-bit accum mode.
+    lda <src>   ; a5??      ; load src addr.
+    clc         ; 18        ; clear carry.
+    adc #$0400  ; 690004    ; add 0x400 (offset to 2nd half of buf).
+    sta $2116   ; 8d1621    ; set DMA src addr.
+    lda #$0001  ; a90100    ; 1 -> a.
+    sep #$20    ; e220      ; set 8-bit accum mode.
+    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
+    rtl         ; 6b        ; return.
 endmacro
 
-cam_start_bg1:
+row_dma_cpy_bg1:
 {
-    asl #04     ; 0a
-    clc         ; 18
-    adc #$0040  ; 694000    ; +16*4
-    rtl         ; 6b
+    %dma(#$da40, $91)
 }
 
-cam_start_bg2:
+row_dma_cpy_bg2:
 {
-    %cam_start($64)
+    %dma(#$e240, $97)
 }
 
-cam_start_bg3:
+row_dma_cpy_bg3:
 {
-    %cam_start($6c)
+    %dma(#$ea40, $9d)
 }
 
 ;===================================================================
-
-; Description (BG1, BG2, & BG3):
-; Horizontal movement modification...
-; Changes tilemap scrolling to begin at 13 tiles in instead of 8.
-
-pushpc
-{
-    ; Switch comparison to 13.
-    org $c07e32 ; BG1, BG2, BG3
-    nop         ; ea
-    cmp #$0c    ; c90c
-}
-pullpc
-
-;===================================================================
-
 ; Description (BG1, BG2,& BG3):
-; Horizontal (x) movement modification for BG1, BG2, & BG3...
-; Modify Load location of column tiles when moving right (+16 columns).
-; Original logic is used when moving left.
+;
+; Column/Horizontal/x movement modifications...
+;
+; - Modify Load location of column tiles when moving right (+16 columns).
+; - Modify the store location for VRAM to place column tiles in the second
+;   half of the buffer for certain coordinate ranges (16-31, 48-63, etc.).
+;
 ; This expands the logic to load data +16 columns from what it
 ; originally did when moving left. The data will then get picked up
 ; during DMA.
+;
+; Modifies the store location for VRAM to place column tiles in the second
+; half of the buffer (16-63, 96-127, etc.) for certain coordinate ranges.
+; Otherwise, it keeps placing data from columns 0 to 31. Internally, it
+; preloads 0x48XX address which needs to be swapped to 0x4CXX for loading
+; in the correct columns.
+;
 
 pushpc
 {
-    ; Call-site modifications
+    ; Column load modifications:
     org $c02247             ; BG1
     jsl col_tile_ld_bg12
     org $c023c2             ; BG2
     jsl col_tile_ld_bg12
     org $c0259c             ; BG3
     jsl col_tile_ld_bg3
+    ; DMA copy modifications:
+    org $c022ca             ; BG1
+    jsl col_dma_cpy_bg1
+    org $c02449             ; BG2
+    jsl col_dma_cpy_bg2
+    org $c02657             ; BG3
+    jsl col_dma_cpy_bg3
 }
 pullpc
+
+;----
 
 macro col_tile_ld()
     ; Add 16 to column offset when moving left.
@@ -449,27 +465,7 @@ col_tile_ld_bg3:
     rtl         ; 6b        ; Return
 }
 
-;===================================================================
-
-; Description (BG1, BG2, & BG3):
-; Horizontal (x) movement modification for BG1, BG2, & BG3...
-; Modify the store location for VRAM to place column tiles in the second half
-; of the buffer (16-63, 96-127, etc.) for certain coordinate ranges. Otherwise, it
-; keeps placing data from columns 0 to 31. Internally, it preloads
-; 0x48XX address which needs to be swapped to 0x4CXX for loading
-; in the correct columns
-
-pushpc
-{
-    ; Call-site modifications
-    org $c022ca             ; BG1
-    jsl col_dma_cpy_bg1
-    org $c02449             ; BG2
-    jsl col_dma_cpy_bg2
-    org $c02657             ; BG3
-    jsl col_dma_cpy_bg3
-}
-pullpc
+;----
 
 macro col_dma_cpy(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
