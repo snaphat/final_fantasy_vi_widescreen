@@ -26,6 +26,11 @@ org  $c3f091
 ; $0974 - current movement direction.
 ; $0975 - last movement direction.
 ;
+; Walk through walls cheat:
+;   Raw: C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
+;   Game Genie: 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
+
+;
 
 ;===================================================================
 ; Description:
@@ -415,6 +420,9 @@ row_dma_cpy_bg3:
 ; preloads 0x48XX address which needs to be swapped to 0x4CXX for loading
 ; in the correct columns.
 ;
+; The max possible coordinate in a map is 127 or 0x7F before they loop
+; around so coordinates need clamped after that.
+;
 
 pushpc
 {
@@ -446,6 +454,7 @@ macro col_tile_ld()
     lda $2a     ; a52a      ; Load column address.
     clc         ; 18        ; Clear carry.
     adc #$10    ; 6910      ; Add 16 to the column.
+    and #$7f    ; 297f      ; Clamp max column to 127 / 0x7F.
     sta $2a     ; 852a      ; Store result.
     ; Right direction:
     .end:
