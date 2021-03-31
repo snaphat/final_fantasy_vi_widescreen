@@ -24,7 +24,8 @@ org  $c3f091
 ; $0545 - BG3 current x-coordinate pivot.
 ; $0546 - BG3 current y-coordinate pivot.
 ; $062c - X-Scroll start + Camera start?
-; $0960 - exact character offset in pixels?
+; $0960 - exact character x-offset in pixels.
+; $0963 - exact character y-offset in pixels.
 ; $0970 - character x position
 ; $0971 - character y position.
 ; $0974 - current movement direction.
@@ -77,9 +78,9 @@ pushpc
     org $c03f49             ; BG3
     lda #$59
     ; Remove pixel masking along edges.
-    org $c005d0             ; left coordinate.
+    org $c005e7             ; left coordinate.
     lda #$00
-    org $c005ec             ; right right coordinate.
+    org $c005ec             ; right coordinate.
     lda #$ff
 }
 pullpc
@@ -89,14 +90,19 @@ pullpc
 ;
 ; Scrolling modifications...
 ;
-; - Remove 8 pixel shift of scroll registers.
+; - Remove 8-pixel shift on sprites.
+; - Remove 8-pixel shift of scroll registers.
 ; - Start x-scrolling when character is 13 columns into the map.
+; - Stop x-scrolling when character is 12 from the end of the map.
 ; - Change x-camera start to +16*4 coordinates.
 ;
 
 pushpc
 {
-    ; Remove 8 pixel shift to left for scroll registers.
+    ; Remove 8 pixel shift for sprites.
+    org $c05bb2 ; OAM
+    nop #4
+    ; Remove 8 pixel shift to left for x-scroll registers.
     org $c042e1 ; BG1
     nop #4
     org $c042ba ; BG2
@@ -105,10 +111,13 @@ pushpc
     nop #4
     org $c0434d ; BG3
     nop #4
-    ; Changes tilemap scrolling to begin at 13 tiles in instead of 8.
+    ; Changes tilemap x-scrolling to begin at 13 tiles in instead of 8.
     org $c07e32 ; BG1, BG2, BG3
     nop         ; ea
     cmp #$0c    ; c90c      ; Switch comparison to 13.
+    ;Changes tilemap x-scrolling to end 4 tiles sooner.
+    org $c017a3
+    sbc #$0b
     ; Call-site modifications
     org $c01b87             ; BG1
     jsl cam_start_bg1
