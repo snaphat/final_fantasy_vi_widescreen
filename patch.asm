@@ -9,6 +9,9 @@ org  $c3f091
 ;===================================================================
 ; Registers:
 ;
+; $5c   - H-scroll value of BG1.
+; $64   - H-scroll value of BG2.
+; $6c   - H-scroll value of BG3.
 ; $91   - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $94   - high byte of BG1 DMA buffer address for x-movement updates.
@@ -20,6 +23,7 @@ org  $c3f091
 ; $0544 - BG2 current y-coordinate pivot.
 ; $0545 - BG3 current x-coordinate pivot.
 ; $0546 - BG3 current y-coordinate pivot.
+; $062c - X-Scroll start + Camera start?
 ; $0960 - exact character offset in pixels?
 ; $0970 - character x position
 ; $0971 - character y position.
@@ -85,12 +89,22 @@ pullpc
 ;
 ; Scrolling modifications...
 ;
+; - Remove 8 pixel shift of scroll registers.
 ; - Start x-scrolling when character is 13 columns into the map.
 ; - Change x-camera start to +16*4 coordinates.
 ;
 
 pushpc
 {
+    ; Remove 8 pixel shift to left for scroll registers.
+    org $c042e1 ; BG1
+    nop #4
+    org $c042ba ; BG2
+    nop #4
+    org $c04317 ; BG2
+    nop #4
+    org $c0434d ; BG3
+    nop #4
     ; Changes tilemap scrolling to begin at 13 tiles in instead of 8.
     org $c07e32 ; BG1, BG2, BG3
     nop         ; ea
