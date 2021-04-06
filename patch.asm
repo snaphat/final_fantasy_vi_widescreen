@@ -115,45 +115,15 @@ pushpc
     org $c07e32 ; BG1, BG2, BG3
     nop         ; ea
     cmp #$0c    ; c90c      ; Switch comparison to 13.
-    ;Changes tilemap x-scrolling to end 4 tiles sooner.
+    ; Changes tilemap x-scrolling to end 4 tiles sooner.
     org $c017a3
     sbc #$0b
-    ; Call-site modifications
-    org $c01b87             ; BG1
-    jsl cam_start_bg1
-    org $c01bdc             ; BG2
-    jsl cam_start_bg2
-    org $c01c62             ; BG3
-    jsl cam_start_bg3
+    ; Change pivot on load
+    org $c0179a
+    lda #$0c
 }
 pullpc
 
-macro cam_start(dest)
-    ; Add 16*4 to start horizontal scroll.
-    and $1e     ; 251e
-    clc         ; 18
-    adc #$0040  ; 694000    ; +16*4
-    sta <dest>  ; 85??
-    rtl         ; 6b
-endmacro
-
-cam_start_bg1:
-{
-    asl #04     ; 0a
-    clc         ; 18
-    adc #$0040  ; 694000    ; +16*4
-    rtl         ; 6b
-}
-
-cam_start_bg2:
-{
-    %cam_start($64)
-}
-
-cam_start_bg3:
-{
-    %cam_start($6c)
-}
 
 ;===================================================================
 ; Description (BG1):
@@ -281,6 +251,13 @@ pushpc
     and #$7f
     org $c0253f             ; BG3
     and #$ff7f
+    ; Row load modifications:
+    org $c0218c             ; BG1 - pivot
+    sbc #$0b                ; -11 instead of -7.
+    org $c02307             ; BG2 - pivot
+    sbc #$0b                ; -11 instead of -7.
+    org $c02477             ; BG3 - pivot
+    sbc #$0b                ; -11 instead of -7.
     ; Call-site modifications: Jump to offset modification routines.
     org $c021a7             ; BG1
     jsl row_tile_ld_bg12
@@ -450,12 +427,18 @@ row_dma_cpy_bg3:
 pushpc
 {
     ; Column load modifications:
-    org $c02247             ; BG1
-    jsl col_tile_ld_bg12
-    org $c023c2             ; BG2
-    jsl col_tile_ld_bg12
-    org $c0259c             ; BG3
-    jsl col_tile_ld_bg3
+    org $c02220             ; BG1 - moving right
+    adc #$14                ; +20 instead of 8. Why? Seems to be 0xc added.
+    org $c0222b             ; BG1 - moving left
+    sbc #$0b                ; -11 instead of -7.
+    org $c0239b             ; BG2 - moving right
+    adc #$14                ; +20 instead of 8. Why? Seems to be 0xc added.
+    org $c023a6             ; BG2 - moving left
+    sbc #$0b                ; -11 instead of -7.
+    org $c02569             ; BG3 - moving right
+    adc #$14                ; +20 instead of 8. Why? Seems to be 0xc added.
+    org $c02578             ; BG3 - moving left
+    sbc #$0b                ; -11 instead of -7.
     ; DMA copy modifications:
     org $c022ca             ; BG1
     jsl col_dma_cpy_bg1
@@ -466,36 +449,6 @@ pushpc
 }
 pullpc
 
-;----
-
-macro col_tile_ld()
-    ; Add 16 to column offset when moving left.
-    lda $0974   ; ad7094    ; Movement direction.
-    cmp #$02    ; c902      ; Compare - 0x2 is right direction.
-    bne .end    ; d007      ; jump for right direction.
-    ; Left direction:
-    lda $2a     ; a52a      ; Load column address.
-    clc         ; 18        ; Clear carry.
-    adc #$10    ; 6910      ; Add 16 to the column.
-    and #$7f    ; 297f      ; Clamp max column to 127 / 0x7F.
-    sta $2a     ; 852a      ; Store result.
-    ; Right direction:
-    .end:
-    lda #$10    ; a910      ; Restore original A low byte value.
-endmacro
-
-col_tile_ld_bg12:
-{
-    %col_tile_ld()
-    rtl         ; 6b        ; Return
-}
-
-col_tile_ld_bg3:
-{
-    %col_tile_ld()
-    sta $1b     ; 851b      ; Store original A.
-    rtl         ; 6b        ; Return
-}
 
 ;----
 
@@ -514,7 +467,7 @@ macro col_dma_cpy(src, dest1, dest2)
     inc         ; 1a        ; add 1 if moving in left direction
     ++:
     sec         ; 38        ; set carry for subtraction
-    sbc #$8     ; e908      ; normalize subtract 8
+    sbc #$0c    ; e90c      ; normalize subtract 12
     and #$10    ; 2910      ; normalize
     cmp #$00    ; c900      ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
     bne .upd    ; d003
