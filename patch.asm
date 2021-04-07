@@ -103,7 +103,10 @@ pushpc
     ; Remove 8 pixel shift for regular sprites.
     org $c05bb2 ; OAM
     nop #4
-    ; Remove 8 pixel shift for large sprites.
+    ; Remove 8 pixel shift for large esper sprites.
+    org $c06579
+    nop #4
+    ; Remove 8 pixel shift for large magitek armor sprites.
     org $c05d67
     jsl rm_lrg_sprite_shft
     ; Remove 8 pixel shift to left for x-scroll registers.
