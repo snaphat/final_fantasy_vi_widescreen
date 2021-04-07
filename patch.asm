@@ -100,9 +100,12 @@ pullpc
 
 pushpc
 {
-    ; Remove 8 pixel shift for sprites.
+    ; Remove 8 pixel shift for regular sprites.
     org $c05bb2 ; OAM
     nop #4
+    ; Remove 8 pixel shift for large sprites.
+    org $c05d67
+    jsl rm_lrg_sprite_shft
     ; Remove 8 pixel shift to left for x-scroll registers.
     org $c042e1 ; BG1
     nop #4
@@ -124,6 +127,15 @@ pushpc
     lda #$0c
 }
 pullpc
+
+rm_lrg_sprite_shft:
+{
+    sbc $5c
+    sec
+    sbc #$0008
+    sta $1e
+    rtl
+}
 
 
 ;===================================================================
