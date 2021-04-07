@@ -13,9 +13,11 @@ org  $c3f091
 ; $64   - H-scroll value of BG2.
 ; $6c   - H-scroll value of BG3.
 ; $73   - x-movement direction offset (non-controller).
-; $91   - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+; $91   - low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $94   - high byte of BG1 DMA buffer address for x-movement updates.
+; $97   - low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
+; $98   - high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
 ; $9a   - high byte of BG2 DMA buffer address for x-movement updates.
 ; $a2   - high byte of BG3 DMA buffer address for x-movement updates.
 ; $0541 - BG1 current x-coordinate pivot.
@@ -170,12 +172,22 @@ pushpc
     org $c03f63             ; BG1
     eor #$01                ; Keep BG1SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
     nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
+    org $c03f83             ; BG2
+    eor #$01                ; Keep BG2SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
+    nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
+    ;
     org $c01f2c
     jsl full_tile_pivot_bg1
+    ;
     org $c01f6b             ; BG1
     jsl full_tile_ld_bg1    ; Modify column load locations.
-    org $c01f37             ; BG1
+    org $c02028             ; BG2
+    jsl full_tile_ld_bg2    ; Modify column load locations.
+    ;
+    org $c01f37             ; BG1 : clobbers a eor #$04 buffer addr update.
     jsl full_dma_cpy_bg1    ; Jump to routine to update the DMA store location if necessary.
+    org $c01ff4             ; BG2 : clobbers a eor #$04 buffer addr update.
+    jsl full_dma_cpy_bg2    ; Jump to routine to update the DMA store location if necessary.
 pullpc
 
 ;----
@@ -192,14 +204,13 @@ full_tile_pivot_bg1:
     rtl
 }
 
-full_tile_ld_bg1:
-{
+macro full_tile_ld(src, test)
     ; Modify column location (+16) for certain coordinate ranges depending on whether the character
     ; is in the left or right half of the extended buffer. The original logic is broken due to doubling buffer sizes.
     phy         ; 5a        ; store dest addr for later.
     ldy #$0000  ; a00000    ; load additional offset of 0.
-    lda $92     ; a592      ; Load buffer location (to determine if we are in left or right half of buffer).
-    cmp #$4c    ; c948      ; equal implies we are in the left half of the buffer.
+    lda <src>   ; a5??      ; Load buffer location (to determine if we are in left or right half of buffer).
+    cmp <test>  ; c9??      ; equal implies we are in the left half of the buffer.
     bne +       ; d00a      ; branch if in second half of of buffer.
     ; Left buffer logic check:
     lda $2a     ; a52a      ; load tile column index.
@@ -220,12 +231,21 @@ full_tile_ld_bg1:
     ply         ; 7a        ; restore  dest addr.
     rep #$20    ; c220      ; clear 8-bit accum mode.
     rtl         ; 6b        ; return.
+endmacro
+
+full_tile_ld_bg1:
+{
+    %full_tile_ld($92, #$4c)
+}
+
+full_tile_ld_bg2:
+{
+    %full_tile_ld($98, #$54)
 }
 
 ;----
 
-full_dma_cpy_bg1:
-{
+macro full_dma_cpy(src, dest)
     ; Changes the VRAM store location if current character coordinate is in the second half of BG1 buffer.
     ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
     ; unteniable if the full 512x256 buffer needs to be updated.
@@ -238,10 +258,20 @@ full_dma_cpy_bg1:
     bra .end    ; 80??      ; Branch to end.
     +:
     pla         ; 68        ; pop original address.
-    lda #$4c    ; a94c      ; Load address for second half of BG1 buffer.
+    lda <src>   ; a9??      ; Load address for second half of BG1 buffer.
     .end:
-    sta $92     ; 8592      ; Update DMA address.
+    sta <dest>  ; 85??      ; Update DMA address.
     rtl         ; 6b        ; Return.
+endmacro
+
+full_dma_cpy_bg1:
+{
+    %full_dma_cpy(#$4c, $92)
+}
+
+full_dma_cpy_bg2:
+{
+    %full_dma_cpy(#$54, $98)
 }
 
 
@@ -398,7 +428,7 @@ rev_row_tile_ld3:
 
 ;----
 
-macro dma(dest, src)
+macro row_dma_cpy(dest, src)
                 ; DMA for second half of BG buffers.
     lda #$01    ; a901      ; 1 -> a.
     sta $420b   ; 8d0b42    ; Initiate DMA transfer.
@@ -419,17 +449,17 @@ endmacro
 
 row_dma_cpy_bg1:
 {
-    %dma(#$da40, $91)
+    %row_dma_cpy(#$da40, $91)
 }
 
 row_dma_cpy_bg2:
 {
-    %dma(#$e240, $97)
+    %row_dma_cpy(#$e240, $97)
 }
 
 row_dma_cpy_bg3:
 {
-    %dma(#$ea40, $9d)
+    %row_dma_cpy(#$ea40, $9d)
 }
 
 ;===================================================================
