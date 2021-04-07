@@ -238,6 +238,7 @@ full_dma_cpy_bg1:
 ;   contigously below the original buffer spots.
 ; - Insert an additional DMA for writing second half of TileMaps to VRAM.
 ;
+; FIXME: The jump logic here slows down the code a lot. Is there a more efficient way to do this?
 
 pushpc
 {
