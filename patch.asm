@@ -12,6 +12,7 @@ org  $c3f091
 ; $5c   - H-scroll value of BG1.
 ; $64   - H-scroll value of BG2.
 ; $6c   - H-scroll value of BG3.
+; $73   - x-movement direction offset (non-controller).
 ; $91   - low byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $94   - high byte of BG1 DMA buffer address for x-movement updates.
@@ -23,13 +24,14 @@ org  $c3f091
 ; $0544 - BG2 current y-coordinate pivot.
 ; $0545 - BG3 current x-coordinate pivot.
 ; $0546 - BG3 current y-coordinate pivot.
+; $0547 - Added to $73 -- dunno.
 ; $062c - X-Scroll start + Camera start?
 ; $0960 - exact character x-offset in pixels.
 ; $0963 - exact character y-offset in pixels.
 ; $0970 - character x position
 ; $0971 - character y position.
-; $0974 - current movement direction.
-; $0975 - last movement direction.
+; $0974 - current controller movement direction. 0 if controller isn't initiating movement.
+; $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement.
 ;
 ; Walk through walls cheat:
 ;   Raw: C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
@@ -468,34 +470,20 @@ pullpc
 macro col_dma_cpy(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
     pha         ; 48        ; push a
-    sep #$10                ; set x & y to 8-bit mode.
-    phx                     ; push x.
-    ldx #$00                ; load x where 0 means left direction.
-    lda $0974   ; ad7094    ; Movement direction.
-
-    cmp #$02    ; c902      ; Compare - 0x2 is right direction.
-    bne +       ; d0??      ; jump for NOT right direction.
-    ldx #$01                ; 1 means we are moving in SOME right direction.
-    +
-    cmp #$05    ; c905      ; Compare - 0x5 is up-right direction.
-    bne +       ; d0??      ; jump for NOT up-right direction.
-    ldx #$01                ; 1 means we are moving in SOME right direction.
-    +
-    cmp #$06    ; c906      ; Compare - 0x6 is down-right direction.
-    bne +       ; d0??      ; jump for NOT down-right direction.
-    ldx #$01                ; 1 means we are moving in SOME right direction.
-    +
-    txa                     ; x->a.
-    plx                     ; pop original x.
-    rep #$10                ; set x & y to 16-bit mode.
-    cmp #$00    ; c900      ; Compare - for SOME right direction.
-    bne +                   ; jump for SOME right direction.
+    rep #$21                ; set 16-bit accumulator mode.
+    lda $73                 ; Load movement offset.
+    adc $0547               ; Add unknown to it (this is what the original code does).
+    bpl +                   ; Branch if positive (indicates right movement).
     ; left direction:
+    tdc                     ; Clear accumulator.
+    sep #$20                ; set 8-bit accumulator mode.
     lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     inc         ; 1a        ; add 1 if moving in left direction
     bra ++      ; 8004      ; jump for right direction
     +:
     ; right direction:
+    tdc                     ; Clear accumulator.
+    sep #$20                ; set 8-bit accumulator mode.
     lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     ++:
     sec         ; 38        ; set carry for subtraction
