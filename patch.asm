@@ -34,7 +34,6 @@ org  $c3f091
 ; Walk through walls cheat:
 ;   Raw: C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
 ;   Game Genie: 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
-
 ;
 
 ;===================================================================
@@ -128,7 +127,7 @@ pullpc
 ;===================================================================
 ; Description (BG1):
 ;
-; full buffer update modifications...
+; full buffer update modifications (only used when needing to update on-screen elements in an existing buffer)...
 ;
 ; - Disable buffer swapping during full screen buffer updates.
 ; - Keep BG in 512x256 mode during full screen buffer updates.
@@ -154,6 +153,8 @@ pushpc
     org $c03f63             ; BG1
     eor #$01                ; Keep BG1SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
     nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
+    org $c01f2c
+    jsl full_tile_pivot_bg1
     org $c01f6b             ; BG1
     jsl full_tile_ld_bg1    ; Modify column load locations.
     org $c01f37             ; BG1
@@ -161,6 +162,18 @@ pushpc
 pullpc
 
 ;----
+
+full_tile_pivot_bg1:
+{
+    ; Modifies the pivot location. Zeros out if underflow due to the pivot being in the right half of the buffer
+    ; so the first half just updates starting at 0x0.
+    sbc #$0b                ; -11 instead of -7.
+    bpl .end                ; Check for underflow (below 0)
+    lda #$00                ; Set to zero if underflow.
+    .end:
+    and $86                 ; Original instruction.
+    rtl
+}
 
 full_tile_ld_bg1:
 {
@@ -217,7 +230,7 @@ full_dma_cpy_bg1:
 
 ;===================================================================
 ; Description (BG1, BG2, & BG3):
-; Row/Vertical/y movement modifications...
+; Row/Vertical/y movement modifications (also used when entering new areas)...
 ;
 ; - Preload additional row tile data into new spots of RAM located
 ;   contigously below the original buffer spots.
