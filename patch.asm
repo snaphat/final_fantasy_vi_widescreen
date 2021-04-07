@@ -468,16 +468,35 @@ pullpc
 macro col_dma_cpy(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
     pha         ; 48        ; push a
+    sep #$10                ; set x & y to 8-bit mode.
+    phx                     ; push x.
+    ldx #$00                ; load x where 0 means left direction.
     lda $0974   ; ad7094    ; Movement direction.
+
     cmp #$02    ; c902      ; Compare - 0x2 is right direction.
-    bne +       ; d005      ; jump for left direction
-    ; right direction:
-    lda $0541   ; ad4105    ; register with vertical pivot coordinate.
-    bra ++      ; 8004      ; jump for right direction
-    +:
+    bne +       ; d0??      ; jump for NOT right direction.
+    ldx #$01                ; 1 means we are moving in SOME right direction.
+    +
+    cmp #$05    ; c905      ; Compare - 0x5 is up-right direction.
+    bne +       ; d0??      ; jump for NOT up-right direction.
+    ldx #$01                ; 1 means we are moving in SOME right direction.
+    +
+    cmp #$06    ; c906      ; Compare - 0x6 is down-right direction.
+    bne +       ; d0??      ; jump for NOT down-right direction.
+    ldx #$01                ; 1 means we are moving in SOME right direction.
+    +
+    txa                     ; x->a.
+    plx                     ; pop original x.
+    rep #$10                ; set x & y to 16-bit mode.
+    cmp #$00    ; c900      ; Compare - for SOME right direction.
+    bne +                   ; jump for SOME right direction.
     ; left direction:
     lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     inc         ; 1a        ; add 1 if moving in left direction
+    bra ++      ; 8004      ; jump for right direction
+    +:
+    ; right direction:
+    lda $0541   ; ad4105    ; register with vertical pivot coordinate.
     ++:
     sec         ; 38        ; set carry for subtraction
     sbc #$0c    ; e90c      ; normalize subtract 12
