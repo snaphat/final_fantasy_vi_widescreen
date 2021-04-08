@@ -144,7 +144,7 @@ rm_lrg_sprite_shft:
 
 
 ;===================================================================
-; Description (BG1):
+; Description (BG1, BG2):
 ;
 ; full buffer update modifications (only used when needing to update on-screen elements in an existing buffer)...
 ;
@@ -166,42 +166,62 @@ rm_lrg_sprite_shft:
 ; during other events?). Exiting an area will reset the pointer to 0x4800. For
 ; a 512x256 tilemap size, the low-bit of the BGSC1 register needs to be high.
 ;
+; Internally, ff6 appears to use BG2 VRAM buffer addresses high-word with
+; ORing logic to determine what the BG2SC (2108) register should be set to.
+; The address is either 0x5000 or 0x54000 depending on whether a buffer swap
+; has occurred. The pointer updates when opening doors or chests (and probably
+; during other events?). Exiting an area will reset the pointer to 0x5000. For
+; a 512x256 tilemap size, the low-bit of the BGSC2 register needs to be high.
+;
 
 pushpc
 {
+    ; Keep register size at 512x256 during disabled buffer swap by flipping the first bit high.
+    ; Disable store back of "new" buffer address to a memory location used for address computations.
     org $c03f63             ; BG1
-    eor #$01                ; Keep BG1SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
-    nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
+    eor #$01
+    nop #3
     org $c03f83             ; BG2
-    eor #$01                ; Keep BG2SC register size at 512x256 during disabled buffer swap by flipping the first bit high.
-    nop #3                  ; Disable store back of "new" buffer address to a memory location used for address computations.
-    ;
-    org $c01f2c
+    eor #$01
+    nop #3
+    ; Modify pivot.
+    org $c01f2c             ; BG1
     jsl full_tile_pivot_bg1
-    ;
+    org $c01fe9             ; BG2
+    jsl full_tile_pivot_bg2
+    ; Modify column load locations.
     org $c01f6b             ; BG1
-    jsl full_tile_ld_bg1    ; Modify column load locations.
+    jsl full_tile_ld_bg1
     org $c02028             ; BG2
-    jsl full_tile_ld_bg2    ; Modify column load locations.
-    ;
-    org $c01f37             ; BG1 : clobbers a eor #$04 buffer addr update.
-    jsl full_dma_cpy_bg1    ; Jump to routine to update the DMA store location if necessary.
-    org $c01ff4             ; BG2 : clobbers a eor #$04 buffer addr update.
-    jsl full_dma_cpy_bg2    ; Jump to routine to update the DMA store location if necessary.
+    jsl full_tile_ld_bg2
+    ; Modify DMA store location.
+    org $c01f37             ; BG1 : clobbers an eor #$04 buffer addr update.
+    jsl full_dma_cpy_bg1
+    org $c01ff4             ; BG2 : clobbers an eor #$04 buffer addr update.
+    jsl full_dma_cpy_bg2
 pullpc
 
 ;----
 
-full_tile_pivot_bg1:
-{
+macro full_tile_pivot(addr)
     ; Modifies the pivot location. Zeros out if underflow due to the pivot being in the right half of the buffer
     ; so the first half just updates starting at 0x0.
     sbc #$0b                ; -11 instead of -7.
     bpl .end                ; Check for underflow (below 0)
     lda #$00                ; Set to zero if underflow.
     .end:
-    and $86                 ; Original instruction.
+    and <addr>              ; Original instruction.
     rtl
+endmacro
+
+full_tile_pivot_bg1:
+{
+    %full_tile_pivot($86)
+}
+
+full_tile_pivot_bg2:
+{
+    %full_tile_pivot($88)
 }
 
 macro full_tile_ld(src, test)
