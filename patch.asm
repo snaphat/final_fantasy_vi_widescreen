@@ -9,52 +9,79 @@ org  $c3f091
 ;===================================================================
 ; Registers:
 ;
-; $5c   - H-scroll value of BG1.
-; $64   - H-scroll value of BG2.
-; $6c   - H-scroll value of BG3.
+;   $5c   - H-scroll value of BG1.
+;   $64   - H-scroll value of BG2.
+;   $6c   - H-scroll value of BG3.
 ;
-; $73   - x-movement direction offset (non-controller).
+;   $73   - x-movement direction offset (non-controller).
 ;
-; $86   - Max x coordinate for BG1.
-; $88   - Max x coordinate for BG2.
-; $8a   - Max x coordinate for BG3.
+;   $86   - Max x coordinate for BG1.
+;   $88   - Max x coordinate for BG2.
+;   $8a   - Max x coordinate for BG3.
 ;
-; $91   - low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
-; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
-; $94   - high byte of BG1 DMA buffer address for x-movement updates.
-; $96   - high byte of BG1 DMA buffer address for x-movement updates (extra?).
+;   $91   - low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
+;   $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+;   $94   - high byte of BG1 DMA buffer address for x-movement updates.
+;   $96   - high byte of BG1 DMA buffer address for x-movement updates (extra?).
 ;
-; $97   - low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
-; $98   - high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
-; $9a   - high byte of BG2 DMA buffer address for x-movement updates.
-; $9c   - high byte of BG2 DMA buffer address for x-movement updates (extra?).
+;   $97   - low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
+;   $98   - high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
+;   $9a   - high byte of BG2 DMA buffer address for x-movement updates.
+;   $9c   - high byte of BG2 DMA buffer address for x-movement updates (extra?).
 ;
-; $9d   - low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
-; $9e   - high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
-; $a0   - high byte of BG3 DMA buffer address for x-movement updates.
-; $a2   - high byte of BG3 DMA buffer address for x-movement updates (extra?).
+;   $9d   - low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
+;   $9e   - high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
+;   $a0   - high byte of BG3 DMA buffer address for x-movement updates.
+;   $a2   - high byte of BG3 DMA buffer address for x-movement updates (extra?).
 ;
-; $0541 - BG1 current x-coordinate pivot.
-; $0542 - BG1 current y-coordinate pivot.
+;   $0541 - BG1 current x-coordinate pivot.
+;   $0542 - BG1 current y-coordinate pivot.
 ;
-; $0543 - BG2 current x-coordinate pivot.
-; $0544 - BG2 current y-coordinate pivot.
+;   $0543 - BG2 current x-coordinate pivot.
+;   $0544 - BG2 current y-coordinate pivot.
 ;
-; $0545 - BG3 current x-coordinate pivot.
-; $0546 - BG3 current y-coordinate pivot.
+;   $0545 - BG3 current x-coordinate pivot.
+;   $0546 - BG3 current y-coordinate pivot.
 ;
-; $0547 - Added to $73 -- dunno.
+;   $0547 - Added to $73 -- dunno.
 ;
-; $062c - X-Scroll start + Camera start?
+;   $062c - X-Scroll start + Camera start?
 ;
-; $0960 - exact character x-offset in pixels.
-; $0963 - exact character y-offset in pixels.
+;   $0960 - exact character x-offset in pixels.
+;   $0963 - exact character y-offset in pixels.
 ;
-; $0970 - character x position
-; $0971 - character y position.
+;   $0970 - character x position
+;   $0971 - character y position.
 ;
-; $0974 - current controller movement direction. 0 if controller isn't initiating movement.
-; $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement.
+;   $0974 - current controller movement direction. 0 if controller isn't initiating movement.
+;   $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement.
+;
+;   0x7e81b3 - Setup for buffer looping.
+;
+; VRAM address map (original) (assuming 8-bit word size):
+;   $0000 - $5fff  - Tile data (BG1 & BG2).
+;   $6000 - $7fff  - Tile data (BG3).
+;   $8000 - $87ff  - Message Borders (BG1).
+;   $8800 - $8fff  - Message Text (BG3) (Top and bottom half are duplicates).
+;   $9000 - $97ff  - Bottom Layer Tiles (BG1).
+;   $9800 - $9fff  - Bottom Layer Tiles Alt (BG1).
+;   $a000 - $a7ff  - Top Layer Tiles (BG2).
+;   $a800 - $afff  - Top Layer Tiles Alt (BG2).
+;   $b000 - $b7ff  - Effects (BG3).
+;   $b800 - $bfff  - Effects Alt (BG3).
+;   $c000 - $dfff  - Sprite Locations (OAM).
+;   $e000 - $ffff  - Sprite Data (OAM).
+;
+; VRAM address map (Wide-screen) (assuming 8-bit word size):
+;   $0000 - $5fff  - Tile data (BG1 & BG2).
+;   $6000 - $7fff  - Tile data (BG3).
+;   $8000 - $87ff  - Message Borders (BG1).
+;   $8800 - $8fff  - Message Text (Top and bottom half are duplicates) (BG3).
+;   $9000 - $9fff  - Ground Tiles (Expanded) (BG1).
+;   $a000 - $afff  - Roof Tiles (Expanded) (BG2).
+;   $b000 - $bfff  - Effects (Expanded) (BG3).
+;   $c000 - $dfff  - Sprite Locations (OAM).
+;   $e000 - $ffff  - Sprite Data (OAM).
 ;
 ; Walk through walls cheat:
 ;   Raw: C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
@@ -101,6 +128,10 @@ pushpc
     lda #$59
     org $c03f49             ; BG3
     lda #$59
+    ;org $c03f17             ; BG1 - msgbox
+    ;lda #$41
+    ;org $c03f3b             ; BG2 - text
+    ;lda #$45
     ; Remove pixel masking along edges.
     org $c005e7             ; left coordinate.
     lda #$00
