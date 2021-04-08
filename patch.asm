@@ -117,7 +117,7 @@ pullpc
 ; - Remove 8-pixel shift on sprites.
 ; - Remove 8-pixel shift of scroll registers.
 ; - Start x-scrolling when character is 13 columns into the map.
-; - Stop x-scrolling when character is 12 from the end of the map.
+; - Stop x-scrolling when character is 13 from the end of the map.
 ; - Change x-camera start to +16*4 coordinates.
 ;
 
@@ -145,9 +145,9 @@ pushpc
     org $c07e32 ; BG1, BG2, BG3
     nop         ; ea
     cmp #$0c    ; c90c      ; Switch comparison to 13.
-    ; Changes tilemap x-scrolling to end 4 tiles sooner.
+    ; Changes tilemap x-scrolling to end 5 tiles sooner.
     org $c017a3
-    sbc #$0b
+    sbc #$0c
     ; Change pivot on load
     org $c0179a
     lda #$0c
