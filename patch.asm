@@ -12,26 +12,47 @@ org  $c3f091
 ; $5c   - H-scroll value of BG1.
 ; $64   - H-scroll value of BG2.
 ; $6c   - H-scroll value of BG3.
+;
 ; $73   - x-movement direction offset (non-controller).
+;
+; $86   - Max x coordinate for BG1.
+; $88   - Max x coordinate for BG2.
+; $8a   - Max x coordinate for BG3.
+;
 ; $91   - low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 ; $94   - high byte of BG1 DMA buffer address for x-movement updates.
+; $96   - high byte of BG1 DMA buffer address for x-movement updates (extra?).
+;
 ; $97   - low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
 ; $98   - high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
 ; $9a   - high byte of BG2 DMA buffer address for x-movement updates.
-; $a2   - high byte of BG3 DMA buffer address for x-movement updates.
+; $9c   - high byte of BG2 DMA buffer address for x-movement updates (extra?).
+;
+; $9d   - low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
+; $9e   - high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
+; $a0   - high byte of BG3 DMA buffer address for x-movement updates.
+; $a2   - high byte of BG3 DMA buffer address for x-movement updates (extra?).
+;
 ; $0541 - BG1 current x-coordinate pivot.
 ; $0542 - BG1 current y-coordinate pivot.
+;
 ; $0543 - BG2 current x-coordinate pivot.
 ; $0544 - BG2 current y-coordinate pivot.
+;
 ; $0545 - BG3 current x-coordinate pivot.
 ; $0546 - BG3 current y-coordinate pivot.
+;
 ; $0547 - Added to $73 -- dunno.
+;
 ; $062c - X-Scroll start + Camera start?
+;
 ; $0960 - exact character x-offset in pixels.
 ; $0963 - exact character y-offset in pixels.
+;
 ; $0970 - character x position
 ; $0971 - character y position.
+;
 ; $0974 - current controller movement direction. 0 if controller isn't initiating movement.
 ; $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement.
 ;
@@ -169,9 +190,16 @@ rm_lrg_sprite_shft:
 ; Internally, ff6 appears to use BG2 VRAM buffer addresses high-word with
 ; ORing logic to determine what the BG2SC (2108) register should be set to.
 ; The address is either 0x5000 or 0x54000 depending on whether a buffer swap
-; has occurred. The pointer updates when opening doors or chests (and probably
-; during other events?). Exiting an area will reset the pointer to 0x5000. For
+; has occurred. The pointer updates when in caves and ????????????????????????
+; ?????????????????????? Exiting an area will reset the pointer to 0x5000. For
 ; a 512x256 tilemap size, the low-bit of the BGSC2 register needs to be high.
+;
+; Internally, ff6 appears to use BG3 VRAM buffer addresses high-word with
+; ORing logic to determine what the BG3SC (2109) register should be set to.
+; The address is either 0x5800 or 0x5c000 depending on whether a buffer swap
+; has occurred. The pointer updates when ?????????????????????????????????????
+; ?????????????????????? Exiting an area will reset the pointer to 0x5800. For
+; a 512x256 tilemap size, the low-bit of the BGSC3 register needs to be high.
 ;
 
 pushpc
@@ -184,21 +212,30 @@ pushpc
     org $c03f83             ; BG2
     eor #$01
     nop #3
+    org $c03fa3             ; BG3
+    eor #$01
+    nop #3
     ; Modify pivot.
     org $c01f2c             ; BG1
     jsl full_tile_pivot_bg1
     org $c01fe9             ; BG2
     jsl full_tile_pivot_bg2
+    org $c020a6             ; BG3
+    jsl full_tile_pivot_bg3
     ; Modify column load locations.
     org $c01f6b             ; BG1
     jsl full_tile_ld_bg1
     org $c02028             ; BG2
     jsl full_tile_ld_bg2
+    ;org $000000             ; BG3 : Seems to use the row load code instead.
+    ;jsl full_tile_ld_bg3
     ; Modify DMA store location.
     org $c01f37             ; BG1 : clobbers an eor #$04 buffer addr update.
     jsl full_dma_cpy_bg1
     org $c01ff4             ; BG2 : clobbers an eor #$04 buffer addr update.
     jsl full_dma_cpy_bg2
+    org $c020b1             ; BG3 : clobbers an eor #$04 buffer addr update.
+    jsl full_dma_cpy_bg3
 pullpc
 
 ;----
@@ -222,6 +259,11 @@ full_tile_pivot_bg1:
 full_tile_pivot_bg2:
 {
     %full_tile_pivot($88)
+}
+
+full_tile_pivot_bg3:
+{
+    %full_tile_pivot($8a)
 }
 
 macro full_tile_ld(src, test)
@@ -263,6 +305,11 @@ full_tile_ld_bg2:
     %full_tile_ld($98, #$54)
 }
 
+;full_tile_ld_bg3:
+;{
+;    %full_tile_ld($9a, #$5c)
+;}
+
 ;----
 
 macro full_dma_cpy(src, dest)
@@ -292,6 +339,11 @@ full_dma_cpy_bg1:
 full_dma_cpy_bg2:
 {
     %full_dma_cpy(#$54, $98)
+}
+
+full_dma_cpy_bg3:
+{
+    %full_dma_cpy(#$5c, $9a)
 }
 
 
