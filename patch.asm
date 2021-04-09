@@ -133,10 +133,18 @@ pushpc
     ;org $c03f3b             ; BG2 - text
     ;lda #$45
     ; Remove pixel masking along edges.
-    org $c005e7             ; left coordinate.
+    org $c005e7             ; left coordinate: town/dungeon.
     lda #$00
-    org $c005ec             ; right coordinate.
+    org $c005ec             ; right coordinate: town/dungeon.
     lda #$ff
+    org $ee9003             ; left coordinate: overworld.
+    lda #$00
+    org $ee9008             ; right coordinate: overworld.
+    lda #$ff
+    ;org $d4cdc6             ; left coordinate: load menu.
+    ;lda #$00
+    ;org $d4cdce             ; right coordinate: load menu.
+    ;lda #$ff
 }
 pullpc
 
