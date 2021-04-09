@@ -97,12 +97,23 @@ org  $c3f091
 ;
 
 ;pushpc
-;{
 ;   org $c00020         ; Reserve stack space (originally #15ff)
 ;   ldx #$14ff
 ;
 ;}
 ;pullpc
+
+;===================================================================
+; Description:
+;
+; Enable rom expansion.
+;
+pushpc
+{
+    org $c0061c ; Disable VRAM mirroring.
+    lda #$fe
+}
+pullpc
 
 ;===================================================================
 ; Description (BG1, BG2, & BG3):
@@ -116,10 +127,12 @@ org  $c3f091
 pushpc
 {
     ; Modify buffers to be 512x256.
+    org $c0bf17             ; BG1 : Switch buffer to 0x10000.
+    ldx #$8000
     org $c005b7             ; BG1
-    lda #$49
+    lda #$81
     org $c03f1f             ; BG1
-    lda #$49
+    lda #$81
     org $c005bc             ; BG2
     lda #$51
     org $c03f2d             ; BG2
@@ -336,7 +349,7 @@ endmacro
 
 full_tile_ld_bg1:
 {
-    %full_tile_ld($92, #$4c)
+    %full_tile_ld($92, #$84)
 }
 
 full_tile_ld_bg2:
@@ -372,7 +385,7 @@ endmacro
 
 full_dma_cpy_bg1:
 {
-    %full_dma_cpy(#$4c, $92)
+    %full_dma_cpy(#$84, $92)
 }
 
 full_dma_cpy_bg2:
@@ -661,7 +674,7 @@ endmacro
 
 col_dma_cpy_bg1:
 {
-    %col_dma_cpy(#$4c, $94, $96) ; 0x4c is the high-byte of the second half of buffer.
+    %col_dma_cpy(#$84, $94, $96) ; 0x4c is the high-byte of the second half of buffer.
 }
 
 col_dma_cpy_bg2:
