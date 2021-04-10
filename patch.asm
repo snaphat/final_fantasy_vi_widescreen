@@ -56,7 +56,8 @@ org  $c3f091
 ;   $0974 - current controller movement direction. 0 if controller isn't initiating movement.
 ;   $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement.
 ;
-;   0x7e81b3 - Setup for buffer looping.
+;   0x7e0500 - Location of table data written to OAM.
+;   0x7e81b3 - Location of buffer looping values (switches on hsync intervals?).
 ;
 ; VRAM address map (original) (assuming 8-bit word size):
 ;   $0000 - $5fff  - Tile data (BG1 & BG2).
@@ -147,6 +148,53 @@ pushpc
     ;lda #$ff
 }
 pullpc
+
+;===================================================================
+; Description (OAM):
+;
+; Sprite Drawing boundary expansion...
+;
+pushpc
+{
+    org $c05bee
+    nop
+    org $c05bb9
+    jsl exp_draw_bounds
+    nop
+}
+pullpc
+
+exp_draw_bounds:
+{
+    ; Checks if character sprite is on a negative boundary and overwrites OAM data. Negative
+    ; boundaries could be on the right or left. Anywhere outside the center of the screen.
+    ; Rather iffy considering it does it directly. For some reason the built in logic does
+    ; not work for the main character sprite so they loop along the center normally? It
+    ; remains to be seen whether the OAM locations are static for the main character or not.
+    pha
+    cpx #$0000  ; Check if character sprite apparently an X of zero here implies this?
+    bne .end    ; Branch if not character sprite.
+    and #$ff00  ; Get high byte.
+    cmp #$0000  ; Check if subtraction was negative for orienting the sprite (-64 logic).
+    beq .end    ; Branch if not negative.
+    sep #$20    ; Kick into 8-bit mode.
+    lda $050f   ; Load current OAM value for sprite that represents the character.
+    ora #$10    ; Enable negative bit to place the sprite to the right of the OAM window.
+    sta $050f   ; Store back.
+    lda $051b   ; Load current OAM value for two other sprites the represent the character.
+    ora #$50    ; 0x10 | 0x40 Enable negative bits to place the sprite(s) to the right of the OAM window.
+    sta $051b   ; Store back.
+    rep #$20    ; Kick into 16-bit mode.
+    .end:
+    pla
+
+    ; Expands the normal (small) sprites to appear in a wider area.
+    adc #$0040  ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    sep #$20    ; kick into 8-bit mode.
+    xba         ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
+    and #$fe    ; Checking clipping to be an extra byte large from the original logic.
+    rtl
+}
 
 ;===================================================================
 ; Description (BG1, BG2, & BG3):
