@@ -155,21 +155,26 @@ pullpc
 ; Sprite Drawing boundary expansion...
 ;
 pushpc
-{    ; Remove 8 pixel shift for regular sprites.
+{   ; Remove 8 pixel shift for regular sprites.
     org $c05bb2 ; OAM
     nop #4
     ; Remove 8 pixel shift for large esper sprites.
     org $c06579
     nop #4
-    ; Remove 8 pixel shift for large magitek armor sprites.
+    ; Remove 8 pixel shift for extra large magitek armor sprites.
     org $c05d67
     jsl rm_lrg_sprite_shft
     ; Expand draw bounds for regular sprites.
     org $c05bee
-    nop ; xba that is now located in the jump.
+    nop                     ; xba that is now located in the jump.
     org $c05bb9
-    jsl exp_draw_bounds
+    jsl exp_draw_bnds_reg_sprite
     nop
+    ; Expand draw bounds for extra large magitek armor sprites.
+    org $c05d99
+    cpy #$01c0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    org $c05d9e
+    cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
 }
 pullpc
 
@@ -177,6 +182,7 @@ pullpc
 
 rm_lrg_sprite_shft:
 {
+    ; Subtract 8 from large sprite location.
     sbc $5c
     sec
     sbc #$0008
@@ -186,7 +192,7 @@ rm_lrg_sprite_shft:
 
 ;----
 
-exp_draw_bounds:
+exp_draw_bnds_reg_sprite:
 {
     ; Checks if character sprite is on a negative boundary and overwrites OAM data. Negative
     ; boundaries could be on the right or left. Anywhere outside the center of the screen.
@@ -194,27 +200,27 @@ exp_draw_bounds:
     ; not work for the main character sprite so they loop along the center normally? It
     ; remains to be seen whether the OAM locations are static for the main character or not.
     pha
-    cpx #$0000  ; Check if character sprite apparently an X of zero here implies this?
-    bne .end    ; Branch if not character sprite.
-    and #$ff00  ; Get high byte.
-    cmp #$0000  ; Check if subtraction was negative for orienting the sprite (-64 logic).
-    beq .end    ; Branch if not negative.
-    sep #$20    ; Kick into 8-bit mode.
-    lda $050f   ; Load current OAM value for sprite that represents the character.
-    ora #$10    ; Enable negative bit to place the sprite to the right of the OAM window.
-    sta $050f   ; Store back.
-    lda $051b   ; Load current OAM value for two other sprites the represent the character.
-    ora #$50    ; 0x10 | 0x40 Enable negative bits to place the sprite(s) to the right of the OAM window.
-    sta $051b   ; Store back.
-    rep #$20    ; Kick into 16-bit mode.
+    cpx #$0000              ; Check if character sprite apparently an X of zero here implies this?
+    bne .end                ; Branch if not character sprite.
+    and #$ff00              ; Get high byte.
+    cmp #$0000              ; Check if subtraction was negative for orienting the sprite (-64 logic).
+    beq .end                ; Branch if not negative.
+    sep #$20                ; Kick into 8-bit mode.
+    lda $050f               ; Load current OAM value for sprite that represents the character.
+    ora #$10                ; Enable negative bit to place the sprite to the right of the OAM window.
+    sta $050f               ; Store back.
+    lda $051b               ; Load current OAM value for two other sprites the represent the character.
+    ora #$50                ; 0x10 | 0x40 Enable negative bits to place the sprite(s) to the right of the OAM window.
+    sta $051b               ; Store back.
+    rep #$20                ; Kick into 16-bit mode.
     .end:
     pla
 
-    ; Expands the normal (small) sprites to appear in a wider area.
-    adc #$0040  ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    sep #$20    ; kick into 8-bit mode.
-    xba         ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
-    and #$fe    ; Checking clipping to be an extra byte large from the original logic.
+    ; Expands the normal sprites to appear in a wider area.
+    adc #$0040              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    sep #$20                ; kick into 8-bit mode.
+    xba                     ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
+    and #$fe                ; Checking clipping to be an extra byte large from the original logic.
     rtl
 }
 
@@ -233,18 +239,18 @@ exp_draw_bounds:
 pushpc
 {
     ; Remove 8 pixel shift to left for x-scroll registers.
-    org $c042e1 ; BG1
+    org $c042e1             ; BG1
     nop #4
-    org $c042ba ; BG2
+    org $c042ba             ; BG2
     nop #4
-    org $c04317 ; BG2
+    org $c04317             ; BG2
     nop #4
-    org $c0434d ; BG3
+    org $c0434d             ; BG3
     nop #4
     ; Changes tilemap x-scrolling to begin at 13 tiles in instead of 8.
-    org $c07e32 ; BG1, BG2, BG3
-    nop         ; ea
-    cmp #$0c    ; c90c      ; Switch comparison to 13.
+    org $c07e32             ; BG1, BG2, BG3
+    nop
+    cmp #$0c                ; Switch comparison to 13.
     ; Changes tilemap x-scrolling to end 5 tiles sooner.
     org $c017a3
     sbc #$0c
