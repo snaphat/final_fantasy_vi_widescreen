@@ -2,3 +2,6 @@
 *.srm
 *.bst
 *.bsz
+*.cht
+*.log
+*.sym

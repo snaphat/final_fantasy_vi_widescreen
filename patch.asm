@@ -155,14 +155,36 @@ pullpc
 ; Sprite Drawing boundary expansion...
 ;
 pushpc
-{
+{    ; Remove 8 pixel shift for regular sprites.
+    org $c05bb2 ; OAM
+    nop #4
+    ; Remove 8 pixel shift for large esper sprites.
+    org $c06579
+    nop #4
+    ; Remove 8 pixel shift for large magitek armor sprites.
+    org $c05d67
+    jsl rm_lrg_sprite_shft
+    ; Expand draw bounds for regular sprites.
     org $c05bee
-    nop
+    nop ; xba that is now located in the jump.
     org $c05bb9
     jsl exp_draw_bounds
     nop
 }
 pullpc
+
+;----
+
+rm_lrg_sprite_shft:
+{
+    sbc $5c
+    sec
+    sbc #$0008
+    sta $1e
+    rtl
+}
+
+;----
 
 exp_draw_bounds:
 {
@@ -210,15 +232,6 @@ exp_draw_bounds:
 
 pushpc
 {
-    ; Remove 8 pixel shift for regular sprites.
-    org $c05bb2 ; OAM
-    nop #4
-    ; Remove 8 pixel shift for large esper sprites.
-    org $c06579
-    nop #4
-    ; Remove 8 pixel shift for large magitek armor sprites.
-    org $c05d67
-    jsl rm_lrg_sprite_shft
     ; Remove 8 pixel shift to left for x-scroll registers.
     org $c042e1 ; BG1
     nop #4
@@ -240,16 +253,6 @@ pushpc
     lda #$0c
 }
 pullpc
-
-rm_lrg_sprite_shft:
-{
-    sbc $5c
-    sec
-    sbc #$0008
-    sta $1e
-    rtl
-}
-
 
 ;===================================================================
 ; Description (BG1, BG2):
