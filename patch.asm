@@ -222,7 +222,7 @@ exp_draw_bnds_reg_sprite:
     pla
 
     ; Expands the normal sprites to appear in a wider area.
-    adc #$0040              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    adc #$0050              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     sep #$20                ; kick into 8-bit mode.
     xba                     ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
     and #$fe                ; Checking clipping to be an extra byte large from the original logic.
