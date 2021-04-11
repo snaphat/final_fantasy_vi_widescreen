@@ -162,15 +162,15 @@ pushpc
     ; Remove 8 pixel shift for regular sprites.
     org $c05bb2 ; OAM
     nop #4
-    ; Remove 8 pixel shift for large chocobo sprites.
-    org $c060e4
-    nop #4
     ; Remove 8 pixel shift for large esper sprites.
     org $c06579
     nop #4
+    ; Remove 8 pixel shift for extra large chocobo sprites.
+    org $c060e0
+    jsl rm_ex_lrg_sprite_shft_chocobo
     ; Remove 8 pixel shift for extra large magitek armor sprites.
     org $c05d67
-    jsl rm_lrg_sprite_shft
+    jsl rm_ex_lrg_sprite_shft_magitek
     ; ----
     ; Load expansion code:
     ; ----
@@ -180,16 +180,16 @@ pushpc
     org $c05bb9
     jsl exp_draw_bnds_reg_sprite
     nop
-    ; Expand draw bounds for large chocobo sprites.
-    org $c06112
-    cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    org $c06117
-    cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     ; Expand draw bounds for large esper sprites.
     org $c065b6
     cpx #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     org $c065bb
     cpx #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    ; Expand draw bounds for extra large chocobo sprites.
+    org $c06112
+    cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    org $c06117
+    cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     ; Expand draw bounds for extra large magitek armor sprites.
     org $c05d99
     cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
@@ -200,14 +200,24 @@ pullpc
 
 ;----
 
-rm_lrg_sprite_shft:
-{
+macro rm_ex_lrg_sprite_shft(dest)
     ; Subtract 8 from large sprite location.
     sbc $5c
     sec
     sbc #$0008
-    sta $1e
+    sta <dest>
     rtl
+endmacro
+
+rm_ex_lrg_sprite_shft_chocobo:
+{
+    %rm_ex_lrg_sprite_shft($20)
+}
+
+
+rm_ex_lrg_sprite_shft_magitek:
+{
+    %rm_ex_lrg_sprite_shft($1e)
 }
 
 ;----
