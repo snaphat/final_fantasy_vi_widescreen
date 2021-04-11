@@ -177,7 +177,7 @@ pushpc
     cpx #$01c0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     ; Expand draw bounds for extra large magitek armor sprites.
     org $c05d99
-    cpy #$01c0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     org $c05d9e
     cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
 }
