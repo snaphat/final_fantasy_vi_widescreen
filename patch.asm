@@ -47,14 +47,14 @@ org  $c3f091
 ;
 ;   $062c - X-Scroll start + Camera start?
 ;
-;   $0960 - exact character x-offset in pixels.
-;   $0963 - exact character y-offset in pixels.
+;   $0960 - exact character x-offset in pixels (not true in all areas).
+;   $0963 - exact character y-offset in pixels (not true in all areas).
 ;
-;   $0970 - character x position
-;   $0971 - character y position.
+;   $0970 - character x position (not true in all areas).
+;   $0971 - character y position (not true in all areas).
 ;
-;   $0974 - current controller movement direction. 0 if controller isn't initiating movement.
-;   $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement.
+;   $0974 - current controller movement direction. 0 if controller isn't initiating movement (not true in all areas).
+;   $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement (not true in all areas).
 ;
 ;   0x7e0500 - Location of table data written to OAM.
 ;   0x7e81b3 - Location of buffer looping values (switches on hsync intervals?).
@@ -438,12 +438,12 @@ full_tile_ld_bg2:
 
 ;----
 
-macro full_dma_cpy(src, dest)
+macro full_dma_cpy(pivot, src, dest)
     ; Changes the VRAM store location if current character coordinate is in the second half of BG1 buffer.
     ; In keeping with the original refresh code only a 256x256 area is updated. This may turn out to be
     ; unteniable if the full 512x256 buffer needs to be updated.
     pha         ; 48        ; push original address.
-    lda $0970   ; ad7090    ; load register with character x-coordinate.
+    lda <pivot> ; ad????    ; load register with x-pivot.
     and #$10    ; 2910      ; normalize.
     cmp #$00    ; c900      ; Compare.
     bne +       ; d011      ; equal implies we shouldn't change our offset.
@@ -459,17 +459,17 @@ endmacro
 
 full_dma_cpy_bg1:
 {
-    %full_dma_cpy(#$4c, $92)
+    %full_dma_cpy($0541, #$4c, $92)
 }
 
 full_dma_cpy_bg2:
 {
-    %full_dma_cpy(#$54, $98)
+    %full_dma_cpy($0543, #$54, $98)
 }
 
 full_dma_cpy_bg3:
 {
-    %full_dma_cpy(#$5c, $9a)
+    %full_dma_cpy($0545, #$5c, $9a)
 }
 
 
