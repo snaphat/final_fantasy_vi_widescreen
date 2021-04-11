@@ -155,8 +155,15 @@ pullpc
 ; Sprite Drawing boundary expansion...
 ;
 pushpc
-{   ; Remove 8 pixel shift for regular sprites.
+{
+    ; ----
+    ; Shift removal code:
+    ; ----
+    ; Remove 8 pixel shift for regular sprites.
     org $c05bb2 ; OAM
+    nop #4
+    ; Remove 8 pixel shift for large chocobo sprites.
+    org $c060e4
     nop #4
     ; Remove 8 pixel shift for large esper sprites.
     org $c06579
@@ -164,6 +171,9 @@ pushpc
     ; Remove 8 pixel shift for extra large magitek armor sprites.
     org $c05d67
     jsl rm_lrg_sprite_shft
+    ; ----
+    ; Load expansion code:
+    ; ----
     ; Expand draw bounds for regular sprites.
     org $c05bee
     nop                     ; xba that is now located in the jump.
