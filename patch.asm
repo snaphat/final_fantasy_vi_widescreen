@@ -396,7 +396,7 @@ macro full_tile_ld(src, test)
     ; Modify column location (+16) for certain coordinate ranges depending on whether the character
     ; is in the left or right half of the extended buffer. The original logic is broken due to doubling buffer sizes.
     phy         ; 5a        ; store dest addr for later.
-    ldy #$0000  ; a00000    ; load additional offset of 0.
+    ldy #$0000  ; a00000    ; load offset of 0x0 (may be switched to 0x10).
     lda <src>   ; a5??      ; Load buffer location (to determine if we are in left or right half of buffer).
     cmp <test>  ; c9??      ; equal implies we are in the left half of the buffer.
     bne +       ; d00a      ; branch if in second half of of buffer.
@@ -561,7 +561,9 @@ pullpc
 ;----
 
 macro row_tile_ld()
-    ; Add 64 to offset if dest offset >= 0x40.
+    ; Add 64 to offset if dest offset >= 0x40. This
+    ; is because the left and right screen buffers
+    ; do not have a contiguous address space.
     sep #$20    ; e220      ; set 8-bit accum mode
     pha         ; 48        ; push src offset.
     tya         ; 98        ; y -> a.
