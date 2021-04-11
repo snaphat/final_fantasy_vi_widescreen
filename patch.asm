@@ -170,6 +170,11 @@ pushpc
     org $c05bb9
     jsl exp_draw_bnds_reg_sprite
     nop
+    ; Expand draw bounds for large chocobo sprites.
+    org $c06112
+    cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    org $c06117
+    cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     ; Expand draw bounds for large esper sprites.
     org $c065b6
     cpx #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
