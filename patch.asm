@@ -56,8 +56,14 @@ org  $c3f091
 ;   $0974 - current controller movement direction. 0 if controller isn't initiating movement (not true in all areas).
 ;   $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement (not true in all areas).
 ;
-;   0x7e0500 - Location of table data written to OAM.
-;   0x7e81b3 - Location of buffer looping values (switches on hsync intervals?).
+;   0x7e0500 - OAM on town/dungeons (in CPU memory).
+;   0x7e81b3 - location of buffer looping values (switches on hsync intervals?).
+;
+; World Map specific:
+;   0x7e6b30 - OAM Table 1 start (in CPU memory).
+;   0x7e6d30 - OAM Table 2 start (in CPU memory).
+;   0x7eb5da - x-location of airship on-screen.
+;   0x7eb5dc - y-location of airship on-screen.
 ;
 ; VRAM address map (original) (assuming 8-bit word size):
 ;   $0000 - $5fff  - Tile data (BG1 & BG2).
@@ -195,9 +201,74 @@ pushpc
     cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
     org $c05d9e
     cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    ; Expand draw bounds for airship sprite.
+    org $ee476e
+    nop #3                  ; Overworld: Remove x-coordinate clamping.
+    org $ee4773
+    cmp #$010a              ; check for displaying ship
+    ;-------------------------------------------------------------------
+    ; Modified Overworld Sprite positioning algorithm to work for
+    ; widescreen. Uses 16-bit values to detect if sprites are outside of
+    ; the 0-255 range and sets the OAM2 bit table for the given sprite.
+    org $ee4335
+    ; Load and normalize the sprite x-offset to be positive.
+    tdc                     ; clear upper byte of a.
+    lda $95d0,y             ; load sprite x-offset (from a lookup table).
+    clc                     ; clear carry.
+    adc #$10                ; normalize x-offset to get rid of overflow (some offsets are in the 0xF6+ range otherwise).
+    ; Switch to 16-bit mode and add x-coord to overflow into the high-byte (used to detect the x-coord range).
+    rep #$21                ; Kick a into 16-bit mode and clear carry.
+    adc $58                 ; add x-coord to sprite x-offset.
+    pha                     ; push a.
+    phx                     ; push x.
+    phy                     ; push y.
+    ; Compute the sprite number, OAM2 byte, and OAM2 9th bit locations (needed to expand x-coords to 0-511).
+    sep #$30                ; Kick into 8-bit mode.
+    txa                     ; transfer sprite offset x->a.
+    lsr #2                  ; normalize to get sprite number.
+    tay                     ; transfer sprite index a->y.
+    and #03                 ; AND to get current bit to modify.
+    tax                     ; transfer OAM BIT to modify a->x.
+    tya                     ; transfer sprite index y->a.
+    lsr #2                  ; normalize to get OAM BYTE to modify.
+    tay                     ; transfer byte to modify a->y.
+    bank $3c
+    lda data, x             ; load bitwise value using current bit as an offset.
+    bank auto
+    tax                     ; store OAM2 bit to set/clear in value a->x.
+    ; Check if in positive range or not and set/clear the 9th bit accordingly.
+    xba                     ; exchange high byte to see if in negative range.
+    beq +                   ; branch if positive range (0x0).
+    ; Negative range (-1 to -256):
+    txa                     ; store OAM2 bit to set/clear in x->a(set).
+    ora $6d30,y             ; OR with current value in OAM2[byte to modify] to set bit.
+    bra ++                  ; Branch to store-back.
+    +:
+    ; positive range (0 to 255):
+    txa                     ; store OAM2 bit to set/clear in x->a (clear).
+    eor #$ff                ; invert bits (all bits except the bit we want to clear should be set).
+    and $6d30,y             ; and with current value in OAM2[byte to modify] to clear bit.
+    ++:
+    sta $6d30,y             ; store back in OAM2[byte to modify].
+    rep #$30                ; Kick into 16-bit mode.
+    ply                     ; restore x.
+    plx                     ; restore y.
+    pla                     ; restore a.
+    sep #$20
+    nop #2                  ; nop to $ee4370 (original game code).
+    ; Overworld - Character offset shift (subtracted by #$10 to compensate for the adjustment above).
+    org $ee482b
+    lda #$6e
+    ; Overworld - Airship offset shift (subtracted by #$10 to compensate for the adjustment above).
+    org $ee4781
+    adc #$006e
+    ;--------------------------------------------------------------------------------------------------
 }
 pullpc
 
+;0x7e6d30
+data:
+    db $01,$04,$10,$40
 ;----
 
 macro rm_ex_lrg_sprite_shft(dest)
