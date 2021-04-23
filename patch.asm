@@ -90,26 +90,97 @@ org  $c3f091
 ;   $c000 - $dfff  - Sprite Locations (OAM).
 ;   $e000 - $ffff  - Sprite Data (OAM).
 ;
-; Walk through walls cheat:
+; Reserved Memory for Widescreen:
+;   $15ff - Configurable mini-map state byte.
+;
+; Walk through walls in Towns/Dungeons cheat:
 ;   Raw: C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
 ;   Game Genie: 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
 ;
+; Walk though walls in Overworld:
+;   Raw: EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
+;   Game Genie: 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
+
+
+
+;===================================================================
+; Description:
+;
+; Cheats...
+;
+; - Walk through Walls in Towns/Dungeons.
+; - Walk through Walls in Overworld.
+;
+pushpc
+{
+    ; Towns/Dungeons
+    org $c04e4e
+    nop #2
+    org $c04e57
+    nop #2
+    org $c04e6a
+    nop #2
+    org $c04e73
+    nop #2
+    org $c04e7e
+    nop #2
+    org $c04e86
+    nop #2
+    org $c04e8d
+    nop #2
+    org $c04ea9
+    db $80 ; bra
+    ; Overworld
+    org $ee1ee2
+    nop #2
+    org $ee1f30
+    nop #2
+    org $ee1f7e
+    nop #2
+    org $ee1fcb
+    nop #2
+}
+pullpc
+
+;===================================================================
+; Description:
+;
+; Lookup tables.
+;
+; - OAM2 bitwise table for looking up the location of the 9th x-bit to set for a given sprite number.
+;
+oam2_bit_vals:
+{
+    db $01,$04,$10,$40 ; bits: 00_00_00_01; 00_00_01_00, 00_01_00_00, 01_00_00_00
+}
+;----
 
 ;===================================================================
 ; Description:
 ;
 ; Stack modifications...
 ;
-; - Reserve stack space for patch usage. (Perhaps unnecessary)
+; - Reserve stack space for patch usage.
+; - Ex-map state for displaying the mini-map in 4 locations.
 ;
+pushpc
+{
+    org $c00020             ; Reserve stack space (originally #15ff)
+    ldx #$15fe              ; New stack start.
+    org $c0002c
+    jsl setup_vars          ; Setup reserved variable state.
+    nop
+}
+pullpc
 
-;pushpc
-;{
-;   org $c00020         ; Reserve stack space (originally #15ff)
-;   ldx #$14ff
-;
-;}
-;pullpc
+setup_vars:
+{
+    lda #$01                ; Initial value of mini-map.
+    sta $15ff               ; ex-map state.
+    lda #$01                ; Original code.
+    sta $420d               ; Original code.
+    rtl
+}
 
 ;===================================================================
 ; Description (BG1, BG2, & BG3):
@@ -119,7 +190,6 @@ org  $c3f091
 ; - Increase buffer size.
 ; - Remove pixel masks for screen edges.
 ;
-
 pushpc
 {
     ; Modify buffers to be 512x256.
@@ -135,9 +205,9 @@ pushpc
     lda #$59
     org $c03f49             ; BG3
     lda #$59
-    ;org $c03f17             ; BG1 - msgbox
+    ;org $c03f17            ; BG1 - msgbox
     ;lda #$41
-    ;org $c03f3b             ; BG2 - text
+    ;org $c03f3b            ; BG2 - text
     ;lda #$45
     ; Remove pixel masking along edges.
     org $c005e7             ; left coordinate: town/dungeon.
@@ -148,9 +218,9 @@ pushpc
     lda #$00
     org $ee9008             ; right coordinate: overworld.
     lda #$ff
-    ;org $d4cdc6             ; left coordinate: load menu.
+    ;org $d4cdc6            ; left coordinate: load menu.
     ;lda #$00
-    ;org $d4cdce             ; right coordinate: load menu.
+    ;org $d4cdce            ; right coordinate: load menu.
     ;lda #$ff
 }
 pullpc
@@ -227,13 +297,13 @@ pushpc
     txa                     ; transfer sprite offset x->a.
     lsr #2                  ; normalize to get sprite number.
     tay                     ; transfer sprite index a->y.
-    and #03                 ; AND to get current bit to modify.
+    and #$03                ; AND to get current bit to modify.
     tax                     ; transfer OAM BIT to modify a->x.
     tya                     ; transfer sprite index y->a.
     lsr #2                  ; normalize to get OAM BYTE to modify.
     tay                     ; transfer byte to modify a->y.
     bank $3c
-    lda data, x             ; load bitwise value using current bit as an offset.
+    lda oam2_bit_vals, x    ; load bitwise value using current bit as an offset.
     bank auto
     tax                     ; store OAM2 bit to set/clear in value a->x.
     ; Check if in positive range or not and set/clear the 9th bit accordingly.
@@ -265,11 +335,6 @@ pushpc
     ;--------------------------------------------------------------------------------------------------
 }
 pullpc
-
-;0x7e6d30
-data:
-    db $01,$04,$10,$40
-;----
 
 macro rm_ex_lrg_sprite_shft(dest)
     ; Subtract 8 from large sprite location.
@@ -322,6 +387,205 @@ exp_draw_bnds_reg_sprite:
     sep #$20                ; kick into 8-bit mode.
     xba                     ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
     and #$fe                ; Checking clipping to be an extra byte large from the original logic.
+    rtl
+}
+
+;===================================================================
+; Description (OAM):
+;
+; Configurable mini-map logic for displaying the mini-map in 4 different possible locations. Implements
+; logic for five different states. Byte $15FF as been reserved on the the stack to store the state.
+; 0 - Mini-map not displayed.
+; 1 - Mini-map displayed on the mid-right.
+; 2 - Mini-map displayed on the far-right.
+; 3 - Mini-map displayed on the mid-left.
+; 4 - Mini-map displayed on the far-left.
+;
+pushpc
+{
+    ; Overworld - Mini-map shift.
+    ;org $ee40d3
+    ;lda #$fe               ; make 9th bit of OAM table 2 negative for most of mini-map (except left edge).
+    ; Cycles ex-map states.
+    org $ee202f
+    jsl mmap_set_cfg
+    nop #2
+    ; Loads initial mini-map offset based on current ex-map state.
+    org $ee4153
+    jsl mmap_apply_cfg
+    ; Sets map sprite x-address and OAM2 table entries.
+    org $ee4164
+    jsl mmap_set_map_loc
+    nop #2
+    ; Sets marker x-address and OAM2 table entry.
+    org $ee41c7
+    jsl mmap_set_marker_loc ;
+}
+pullpc
+
+mmap_set_cfg:
+{
+    ; Implements logic for setting up 5 different states to cycle through when the mini-map button toggle is
+    ; hit. Modifies the original state bit logic accordingly. The map is open if $11f6 bit 0 is low and closed
+    ; if bit 0 is high. However, the state logic here is inversed because the game inverses the currently
+    ; reported state after this subroutine. This routine is called during mini-map toggle ON and OFF.
+    sep #$30                ; set 8-bit a,x,y mode.
+    lda $11f6               ; load state byte that contains map state bit.
+    ldx $15ff               ; load current ex-map state (reserved stack space).
+    inx                     ; inc ex-map state.
+    cpx #$05                ; check if above max ex-map state.
+    bne +
+    ; Roll around exmap-state (Disable map).
+    and #$fe                ; report map as currently enabled.
+    ldx #$00                ; load 0 for ex-map state.
+    bra ++
+    +:
+    ; Enable map.
+    ora #$01                ; Report map as currently disabled.
+    ++:
+    sta $11f6               ; Store inverted map state bit.
+    stx $15ff               ; Store ex-map state (reserved stack space).
+    rep #$20                ; clear 8-bit a,x,y mode.
+    bit #$0001              ; Check map state (for jump that follows this).
+    rtl
+}
+
+mmap_apply_cfg:
+{
+    ; Implements logic for loading the initial top-left location of the mini-map. The upper bit of the
+    ; accumulator is set to 1 if the map begins outside of the 0-255 coordinate area (i.e. is negative).
+    ; This will not be called if the ex-map state is 0 so it is not handled here. This routine is called
+    ; only during mini-map toggle ON.
+    xba                     ; swap upper and lower byte so we can set the upper byte.
+    lda $15ff               ; load the current ex-map state.
+    ; State 1 - Mid-right.
+    cmp #$01                ; Check if state is 1.
+    bne +
+    lda #$00                ; high byte address of x coord (positive region).
+    ldy #$f0                ; Start map at x = 240
+    bra ++
+    +:
+    ; State 2 - Far-right.
+    cmp #$02                ; Check if state is 2.
+    bne +
+    lda #$01                ; high byte address of x coord (negative region).
+    ldy #$00                ; start map at x = -256
+    bra ++
+    +:
+    ; State 3 - Mid-left.
+    cmp #$03                ; Check if state is 3.
+    bne +
+    lda #$01                ; high byte address of x coord (negative region).
+    ldy #$d0                ; start map at x = -48
+    bra ++
+    +:
+    ; State 4 - Far-left.
+    cmp #$04                ; Check if state is 4.
+    bne ++
+    lda #$01                ; high byte address of x coord (negative region).
+    ldy #$c0                ; start map at x = -64
+    ++:
+    ldx #$00                ; Original instruction.
+    xba                     ; Swap high byte back to high location.
+    rtl
+}
+
+mmap_set_map_loc:
+{
+    ; Implements logic for incrementing the mini-map sprite coordinates. This extends the original logic
+    ; to handle overflow (locations outside of 0-255) and sets the OAM2 table accordingly. Each call
+    ; to this routine handles a column (4 sprites) of the map beginning from the left and increments
+    ; the x-coordinate by 16. This routine is called only during mini-map toggle ON.
+    pha                     ; Push x-address value.
+    phx                     ; Push sprite index.
+    txa                     ; Transfer sprite index to x->a.
+    lsr #2                  ; Normalize to get OAM bit to modify.
+    tax                     ; transfer OAM BIT to modify a->x.
+    bank $3c
+    lda oam2_bit_vals, x    ; load bitwise value using current bit as an offset.
+    bank auto
+    ; Check if in positive range or not and set/clear the 9th bit accordingly.
+    xba                     ; exchange high byte to see if in negative range.
+    cmp #$01
+    bne +                   ; branch if positive range (0x0).
+    ; Negative range (-1 to -256):
+    xba                     ; store OAM2 bit to set/clear in x->a(set).
+    ora $6d31               ; OR with current value in OAM2 to set bit.
+    bra ++                  ; Branch to store-back.
+    +:
+    ; positive range (0 to 255):
+    xba                     ; store OAM2 bit to set/clear in x->a (clear).
+    eor #$ff                ; invert bits (all bits except the bit we want to clear should be set).
+    and $6d31               ; AND with current value in OAM2[1] to clear bit.
+    ++:
+    ; Store back - this works because these are where map columns are stored.
+    sta $6d31               ; store back in OAM2[1].
+    sta $6d32               ; store back in OAM2[2].
+    sta $6d33               ; store back in OAM2[3].
+    sta $6d34               ; store back in OAM2[4].
+    plx                     ; Pop sprite offset.
+    pla                     ; Pop x-address.
+    ; Add offset for next column of mini-map.
+    rep #$20                ; Set 16-bit mode for a.
+    clc                     ; Clear-carry.
+    adc #$0010              ; Add while accounting for overflow.
+    sep #$20                ; Set 8-bit mode for a.
+    ; Do original logic.
+    tay                     ; Original code.
+    txa                     ; Original code.
+    clc                     ; Original code.
+    adc #$04                ; Original code.
+    rtl                     ; Original code.
+}
+
+mmap_set_marker_loc:
+{
+    ; Implements logic for offsetting the mini-map marker's x-coordinate depending on the current ex-map
+    ; state. Internally, it also adjusts the OAM2 table for the marker when outside of the 0-255 coordinate
+    ; region. This routine is called every frame.
+    sep #$10                ; set 8-bit x,y mode.
+    ldx $15ff               ; load current ex-map state.
+    ; State 1 - Mid-right.
+    cpx #$01                ; Check if state is 1.
+    bne +
+    sec
+    sbc #$0010              ; Orient marker.
+    bra ++
+    +:
+    ; State 2 - Far-right.
+    cpx #$02                ; Check if state is 2.
+    bne +
+    bra ++                  ; No need to orient marker.
+    +:
+    ; State 3 - Mid-left.
+    cpx #$03                ; Check if state is 3.
+    bne +
+    clc
+    adc #$00d0              ; orient marker.
+    bra ++
+    +:
+    ; State 4 - Far-left.
+    cpx #$04                ; Check if state is 4.
+    bne ++
+    clc
+    adc #$00c0              ; orient marker.
+    ++:
+
+    sep #$20                ; set 8-bit a mode.
+    pha                     ; push x-coordinate (can't transfer or it affects the negative flag).
+    bmi +                   ; Check if in negative range.
+    ; Negative range (-1 to -256):
+    lda #$01                ; Load bit to set.
+    ora $6d30               ; OR with current value in OAM2 to set bit.
+    bra ++
+    +
+    ; positive range (0 to 255):
+    lda #$fe                ; Load bit to unset.
+    and $6d30               ; AND with current value in OAM2 to clear bit.
+    ++
+    sta $6d30               ; store back in OAM2.
+    pla                     ; pop x-coordinate.
+    rep #$30                ; set 16-bit a,x,y mode.
     rtl
 }
 
