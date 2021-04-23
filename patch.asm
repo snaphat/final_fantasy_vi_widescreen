@@ -238,6 +238,9 @@ pushpc
     ; Remove 8 pixel shift for regular sprites.
     org $c05bb2 ; OAM
     nop #4
+    ; Remove 8 pixel shift for shadow clipping sprites.
+    org $c0c8c3
+    nop #3
     ; Remove 8 pixel shift for large esper sprites.
     org $c06579
     nop #4
