@@ -71,25 +71,27 @@ org  $c3f091
 ; Field WRAM Buffers:
 ;   $7e0500 : OAM buffer.
 ;   $7e81b3 : location of buffer looping values (switches on hsync intervals?).
+;
 ;   $7fd840 - $7fd8bf: Partial BG1 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
 ;   $7fd8c0 - $7fd93f: Partial BG2 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
 ;   $7fd940 - $7fd9bf: Partial BG3 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
-;   $7fd9c0 - $7fda3f: Partial BG1 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
-;   $7fda40 - $7fe1bf: Partial BG2 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
-;   $7fe1c0 - $7fe23f: Partial BG3 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;
+;   $7fd9c0 - $7fda3f: Partial BG2 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fe1c0 - $7fe23f: Partial BG2 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fe9c0 - $7fea3f: Partial BG3 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;
 ;   $7fd9c0 - $7fe1bf: BG1 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
 ;   $7fe1c0 - $7fe9bf: BG2 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
 ;   $7fe9c0 - $7ff1bf: BG3 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
 ;
 ; Field Code:
 ;   $c02a78 - $c02aC9 : Column Update DMA Code for BG1 in the Field
-;   $c02aca - $c02aFa : Row    Update DMA Code for BG2 in the Field
+;   $c02aca - $c02afa : Row    Update DMA Code for BG2 in the Field
 ;   $c02afb - $c02b4c : Column Update DMA Code for BG2 in the Field
 ;   $c02b4d - $c02b7d : Row    Update DMA Code for BG3 in the Field
 ;   $c02b7e - $c02bcf : Column Update DMA Code for BG3 in the Field
 ;
-;
-; World Map RAM Buffers:
+; World Map WRAM Buffers:
 ;   0x7e6b30 : OAM Table 1 start (in CPU memory).
 ;   0x7e6d30 : OAM Table 2 start (in CPU memory).
 ;   0x7eb5da : x-location of airship on-screen.
