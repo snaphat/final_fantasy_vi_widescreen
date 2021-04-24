@@ -7,99 +7,129 @@ org  $c3f091
 
 
 ;===================================================================
-; Registers:
+; Field Registers:
 ;
-;   $5c   - H-scroll value of BG1.
-;   $64   - H-scroll value of BG2.
-;   $6c   - H-scroll value of BG3.
+;   $5c   : H-scroll value of BG1.
+;   $64   : H-scroll value of BG2.
+;   $6c   : H-scroll value of BG3.
 ;
-;   $73   - x-movement direction offset (non-controller).
+;   $73   : x-movement direction offset (non-controller).
 ;
-;   $86   - Max x coordinate for BG1.
-;   $88   - Max x coordinate for BG2.
-;   $8a   - Max x coordinate for BG3.
+;   $86   : BG1 Map Horizontal Clip.
+;   $87   : BG1 Map Vertical Clip.
+;   $88   : BG2 Map Horizontal Clip.
+;   $89   : BG2 Map Vertical Clip.
+;   $8A   : BG3 Map Horizontal Clip.
+;   $8B   : BG3 Map Vertical Clip.
 ;
-;   $91   - low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
-;   $92   - high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
-;   $94   - high byte of BG1 DMA buffer address for x-movement updates.
-;   $96   - high byte of BG1 DMA buffer address for x-movement updates (extra?).
+;   $91   : low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
+;   $92   : high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+
+;   $93   : low byte of  BG1 DMA buffer address for x-movement updates (column 1).
+;   $94   : high byte of BG1 DMA buffer address for x-movement updates (column 1).
+;   $95   : low byte of  BG1 DMA buffer address for x-movement updates (column 2).
+;   $96   : high byte of BG1 DMA buffer address for x-movement updates (column 2).
 ;
-;   $97   - low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
-;   $98   - high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
-;   $9a   - high byte of BG2 DMA buffer address for x-movement updates.
-;   $9c   - high byte of BG2 DMA buffer address for x-movement updates (extra?).
+;   $97   : low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
+;   $98   : high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
 ;
-;   $9d   - low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
-;   $9e   - high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
-;   $a0   - high byte of BG3 DMA buffer address for x-movement updates.
-;   $a2   - high byte of BG3 DMA buffer address for x-movement updates (extra?).
+;   $99   : low byte of  BG2 DMA buffer address for y-movement updates (column 1).
+;   $9a   : high byte of BG2 DMA buffer address for x-movement updates (column 1).
+;   $9b   : low byte of  BG2 DMA buffer address for x-movement updates (column 2).
+;   $9c   : high byte of BG2 DMA buffer address for x-movement updates (column 2).
 ;
-;   $0541 - BG1 current x-coordinate pivot.
-;   $0542 - BG1 current y-coordinate pivot.
+;   $9d   : low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
+;   $9e   : high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
 ;
-;   $0543 - BG2 current x-coordinate pivot.
-;   $0544 - BG2 current y-coordinate pivot.
+;   $9f   : low byte of  BG3 DMA buffer address for x-movement updates (column 1).
+;   $a0   : high byte of BG3 DMA buffer address for x-movement updates (column 1).
+;   $a1   : low byte of  BG3 DMA buffer address for x-movement updates (column 2).
+;   $a2   : high byte of BG3 DMA buffer address for x-movement updates (column 2).
 ;
-;   $0545 - BG3 current x-coordinate pivot.
-;   $0546 - BG3 current y-coordinate pivot.
+;   $0541 : BG1 current x-coordinate pivot.
+;   $0542 : BG1 current y-coordinate pivot.
 ;
-;   $0547 - Added to $73 -- dunno.
+;   $0543 : BG2 current x-coordinate pivot.
+;   $0544 : BG2 current y-coordinate pivot.
 ;
-;   $062c - X-Scroll start + Camera start?
+;   $0545 : BG3 current x-coordinate pivot.
+;   $0546 : BG3 current y-coordinate pivot.
 ;
-;   $0960 - exact character x-offset in pixels (not true in all areas).
-;   $0963 - exact character y-offset in pixels (not true in all areas).
+;   $0547 : Added to $73 -- dunno.
 ;
-;   $0970 - character x position (not true in all areas).
-;   $0971 - character y position (not true in all areas).
+;   $062c : X-Scroll start + Camera start?
 ;
-;   $0974 - current controller movement direction. 0 if controller isn't initiating movement (not true in all areas).
-;   $0975 - current controller movement direction (stored). 0 if controller isn't initiating movement (not true in all areas).
+;   $0960 : exact character x-offset in pixels (not true in all areas).
+;   $0963 : exact character y-offset in pixels (not true in all areas).
 ;
-;   0x7e0500 - OAM on town/dungeons (in CPU memory).
-;   0x7e81b3 - location of buffer looping values (switches on hsync intervals?).
+;   $0970 : character x position (not true in all areas).
+;   $0971 : character y position (not true in all areas).
 ;
-; World Map specific:
-;   0x7e6b30 - OAM Table 1 start (in CPU memory).
-;   0x7e6d30 - OAM Table 2 start (in CPU memory).
-;   0x7eb5da - x-location of airship on-screen.
-;   0x7eb5dc - y-location of airship on-screen.
+;   $0974 : current controller movement direction. 0 if controller isn't initiating movement (not true in all areas).
+;   $0975 : current controller movement direction (stored). 0 if controller isn't initiating movement (not true in all areas).
+;
+; Field WRAM Buffers:
+;   $7e0500 : OAM buffer.
+;   $7e81b3 : location of buffer looping values (switches on hsync intervals?).
+;   $7fd840 - $7fd8bf: Partial BG1 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
+;   $7fd8c0 - $7fd93f: Partial BG2 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
+;   $7fd940 - $7fd9bf: Partial BG3 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
+;   $7fd9c0 - $7fda3f: Partial BG1 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fda40 - $7fe1bf: Partial BG2 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fe1c0 - $7fe23f: Partial BG3 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fd9c0 - $7fe1bf: BG1 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fe1c0 - $7fe9bf: BG2 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
+;   $7fe9c0 - $7ff1bf: BG3 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
+;
+; Field Code:
+;   $c02a78 - $c02aC9 : Column Update DMA Code for BG1 in the Field
+;   $c02aca - $c02aFa : Row    Update DMA Code for BG2 in the Field
+;   $c02afb - $c02b4c : Column Update DMA Code for BG2 in the Field
+;   $c02b4d - $c02b7d : Row    Update DMA Code for BG3 in the Field
+;   $c02b7e - $c02bcf : Column Update DMA Code for BG3 in the Field
+;
+;
+; World Map RAM Buffers:
+;   0x7e6b30 : OAM Table 1 start (in CPU memory).
+;   0x7e6d30 : OAM Table 2 start (in CPU memory).
+;   0x7eb5da : x-location of airship on-screen.
+;   0x7eb5dc : y-location of airship on-screen.
 ;
 ; VRAM address map (original) (assuming 8-bit word size):
-;   $0000 - $5fff  - Tile data (BG1 & BG2).
-;   $6000 - $7fff  - Tile data (BG3).
-;   $8000 - $87ff  - Message Borders (BG1).
-;   $8800 - $8fff  - Message Text (BG3) (Top and bottom half are duplicates).
-;   $9000 - $97ff  - Bottom Layer Tiles (BG1).
-;   $9800 - $9fff  - Bottom Layer Tiles Alt (BG1).
-;   $a000 - $a7ff  - Top Layer Tiles (BG2).
-;   $a800 - $afff  - Top Layer Tiles Alt (BG2).
-;   $b000 - $b7ff  - Effects (BG3).
-;   $b800 - $bfff  - Effects Alt (BG3).
-;   $c000 - $dfff  - Sprite Locations (OAM).
-;   $e000 - $ffff  - Sprite Data (OAM).
+;   $0000 - $5fff  : Tile data (BG1 & BG2).
+;   $6000 - $7fff  : Tile data (BG3).
+;   $8000 - $87ff  : Message Borders (BG1).
+;   $8800 - $8fff  : Message Text (BG3) (Top and bottom half are duplicates).
+;   $9000 - $97ff  : Bottom Layer Tiles (BG1).
+;   $9800 - $9fff  : Bottom Layer Tiles Alt (BG1).
+;   $a000 - $a7ff  : Top Layer Tiles (BG2).
+;   $a800 - $afff  : Top Layer Tiles Alt (BG2).
+;   $b000 - $b7ff  : Effects (BG3).
+;   $b800 - $bfff  : Effects Alt (BG3).
+;   $c000 - $dfff  : Sprite Locations (OAM).
+;   $e000 - $ffff  : Sprite Data (OAM).
 ;
 ; VRAM address map (Wide-screen) (assuming 8-bit word size):
-;   $0000 - $5fff  - Tile data (BG1 & BG2).
-;   $6000 - $7fff  - Tile data (BG3).
-;   $8000 - $87ff  - Message Borders (BG1).
-;   $8800 - $8fff  - Message Text (Top and bottom half are duplicates) (BG3).
-;   $9000 - $9fff  - Ground Tiles (Expanded) (BG1).
-;   $a000 - $afff  - Roof Tiles (Expanded) (BG2).
-;   $b000 - $bfff  - Effects (Expanded) (BG3).
-;   $c000 - $dfff  - Sprite Locations (OAM).
-;   $e000 - $ffff  - Sprite Data (OAM).
+;   $0000 - $5fff : Tile data (BG1 & BG2).
+;   $6000 - $7fff : Tile data (BG3).
+;   $8000 - $87ff : Message Borders (BG1).
+;   $8800 - $8fff : Message Text (Top and bottom half are duplicates) (BG3).
+;   $9000 - $9fff : Ground Tiles (Expanded) (BG1).
+;   $a000 - $afff : Roof Tiles (Expanded) (BG2).
+;   $b000 - $bfff : Effects (Expanded) (BG3).
+;   $c000 - $dfff : Sprite Locations (OAM).
+;   $e000 - $ffff : Sprite Data (OAM).
 ;
 ; Reserved Memory for Widescreen:
-;   $15ff - Configurable mini-map state byte.
+;   $15ff : Configurable mini-map state byte.
 ;
 ; Walk through walls in Towns/Dungeons cheat:
-;   Raw: C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
-;   Game Genie: 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
+;   Raw : C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
+;   Game Genie : 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
 ;
 ; Walk though walls in Overworld:
-;   Raw: EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
-;   Game Genie: 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
+;   Raw : EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
+;   Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
 
 
 
