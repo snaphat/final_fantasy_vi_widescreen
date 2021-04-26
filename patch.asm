@@ -72,44 +72,44 @@ org  $c3f091
 ;
 ; @ ROM Code Map:
 ;   Field:
-;       $c01cf3 - $c01d23 : Full   Update DMA           Code for BG1.
-;       $c01d24 - $c01d5e : Full   Update DMA           Code for BG1.
-;       $c01d5f - $c01d8f : Full   Update DMA           Code for BG2.
-;       $c01d90 - $c01dca : Full   Update DMA           Code for BG2.
-;       $c01dcb - $c01dfb : Full   Update DMA           Code for BG3.
-;       $c01dfc - $c91e36 : Full   Update DMA           Code for BG3.
-;       $c01e37 - $c01ec3 : Full   Update DMA check     Code for BG1, BG2, BG3.
-;       $c01ec4 - $c01f07 : Full   Update Map Data      Code for BG1, BG2, BG3 (e.g. open door).
-;       $c01f08 - $c01f13 : Full   Update Check         Code for BG1.
-;       $c01f14 - $c01fc1 : Full   Update Buffering     Code for BG1.
-;       $c01fc2 - $c01fcd : Full   Update Check         Code for BG2.
-;       $c01fce - $c02080 : Full   Update Buffering     Code for BG2.
-;       $c02081 - $c0208c : Full   Update Check         Code for BG3.
-;       $c0208d - $c02101 : Full   Update Buffering     Code for BG3.
-;       $c02102 - $c02138 : Column Update Check         Code for BG1, BG2.
-;                           Row/Column Update Check     Code for BG3.
-;       $c01239 - $c02153 : Row    Update Check         Code for BG1, BG2,
-;       $c02154 - $c0220f : Row    Update Buffering     Code for BG1.
-;       $c02210 - $c022ce : Column Update Buffering     Code for BG1.
-;       $c022cf - $c0238a : Row    Update Buffering     Code for BG2.
-;       $c0238b - $c0244d : Column Update Buffering     Code for BG2.
-;       $c0244e - $c02499 : Row    Update Pre-Buffering Code for BG3.
-;       $c0249a - $c02558 : Row    Update Buffering     Code for BG3.
-;       $c02559 - $c0265b : Column Update Buffering     Code for BG3.
-;       $c0265c - $c0268c : Color Palette Load          Code.
-;       $c0268d - $c026d7 : Tile Data DMA Check         Code for BG1, BG2.
-;       $c026d8 - $c0285e : Tile Data DMA               Code for BG1, BG2.
-;       $c0275f - $c027d9 : Tile Data DMA               Code for BG3.
-;       $c027da - $c02882 : Tile Formation              Code for BG1, BG2.
-;       $c02883 - $c0296a : Map Load                    Code for BG1, BG2.
-;       $c0296b - $c0297f : Map Load                    Code for BG3.
-;       $c02980 - $c02a46 : Map Decompression           Code.
-;       $c02a47 - $c02a77 : Row    Update DMA           Code for BG1.
-;       $c02a78 - $c02aC9 : Column Update DMA           Code for BG1.
-;       $c02aca - $c02afa : Row    Update DMA           Code for BG2.
-;       $c02afb - $c02b4c : Column Update DMA           Code for BG2.
-;       $c02b4d - $c02b7d : Row    Update DMA           Code for BG3.
-;       $c02b7e - $c02bcf : Column Update DMA           Code for BG3.
+;       $c01cf3 - $c01d23 : Full Update Top-half DMA to VRAM | BG1.
+;       $c01d24 - $c01d5e : Full Update Bot-half DMA to VRAM | BG1.
+;       $c01d5f - $c01d8f : Full Update Top-half DMA to VRAM | BG2.
+;       $c01d90 - $c01dca : Full Update Bot-half DMA to VRAM | BG2.
+;       $c01dcb - $c01dfb : Full Update Top-half DMA to VRAM | BG3.
+;       $c01dfc - $c91e36 : Full Update Bot-half DMA to VRAM | BG3.
+;       $c01e37 - $c01ec3 : Full Update DMA check            | BG1, BG2, BG3.
+;       $c01ec4 - $c01f07 : Full Update Map Data (e.g doors) | BG1, BG2, BG3.
+;       $c01f08 - $c01f13 : Full Update Check                | BG1.
+;       $c01f14 - $c01fc1 : Full Update Buffering            | BG1.
+;       $c01fc2 - $c01fcd : Full Update Check                | BG2.
+;       $c01fce - $c02080 : Full Update Buffering            | BG2.
+;       $c02081 - $c0208c : Full Update Check                | BG3.
+;       $c0208d - $c02101 : Full Update Buffering            | BG3.
+;       $c02102 - $c02138 : Column Update Check              | BG1, BG2.
+;                           Row/Column Update Check          | BG3.
+;       $c01239 - $c02153 : Row    Update Check              | BG1, BG2,
+;       $c02154 - $c0220f : Row    Update Buffering          | BG1.
+;       $c02210 - $c022ce : Column Update Buffering          | BG1.
+;       $c022cf - $c0238a : Row    Update Buffering          | BG2.
+;       $c0238b - $c0244d : Column Update Buffering          | BG2.
+;       $c0244e - $c02499 : Row    Update Pre-Buffering      | BG3.
+;       $c0249a - $c02558 : Row    Update Buffering          | BG3.
+;       $c02559 - $c0265b : Column Update Buffering          | BG3.
+;       $c0265c - $c0268c : Color Palette Load               | BG1, BG2, BG3.
+;       $c0268d - $c026d7 : Tile Data DMA Check              | BG1, BG2.
+;       $c026d8 - $c0285e : Tile Data DMA to VRAM            | BG1, BG2.
+;       $c0275f - $c027d9 : Tile Data DMA to VRAM            | BG3.
+;       $c027da - $c02882 : Tile Formation                   | BG1, BG2.
+;       $c02883 - $c0296a : Map Load                         | BG1, BG2.
+;       $c0296b - $c0297f : Map Load                         | BG3.
+;       $c02980 - $c02a46 : Map Decompression                | BG1, BG2, BG3.
+;       $c02a47 - $c02a77 : Row    Update DMA to VRAM        | BG1.
+;       $c02a78 - $c02aC9 : Column Update DMA to VRAM        | BG1.
+;       $c02aca - $c02afa : Row    Update DMA to VRAM        | BG2.
+;       $c02afb - $c02b4c : Column Update DMA to VRAM        | BG2.
+;       $c02b4d - $c02b7d : Row    Update DMA to VRAM        | BG3.
+;       $c02b7e - $c02bcf : Column Update DMA to VRAM        | BG3.
 
 ; @ WRAM Address Map:
 ;   Field:
@@ -779,7 +779,7 @@ pushpc
     jsl full_tile_ld_bg1
     org $c02028             ; BG2
     jsl full_tile_ld_bg2
-    ;org $000000             ; BG3 : Seems to use the row load code instead.
+    ;org $000000            ; BG3 : Seems to use the row load code instead.
     ;jsl full_tile_ld_bg3
     ; Modify DMA store location.
     org $c01f37             ; BG1 : clobbers an eor #$04 buffer addr update.
