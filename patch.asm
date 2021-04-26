@@ -7,138 +7,180 @@ org  $c3f091
 
 
 ;===================================================================
-; Field Registers:
+; @ RAM Direct Page Map:
+;   Field:
+;       $5c   : H-scroll value of BG1.
+;       $64   : H-scroll value of BG2.
+;       $6c   : H-scroll value of BG3.
 ;
-;   $5c   : H-scroll value of BG1.
-;   $64   : H-scroll value of BG2.
-;   $6c   : H-scroll value of BG3.
+;       $73   : x-movement direction offset (non-controller).
 ;
-;   $73   : x-movement direction offset (non-controller).
+;       $86   : BG1 Map Horizontal Clip.
+;       $87   : BG1 Map Vertical Clip.
+;       $88   : BG2 Map Horizontal Clip.
+;       $89   : BG2 Map Vertical Clip.
+;       $8A   : BG3 Map Horizontal Clip.
+;       $8B   : BG3 Map Vertical Clip.
 ;
-;   $86   : BG1 Map Horizontal Clip.
-;   $87   : BG1 Map Vertical Clip.
-;   $88   : BG2 Map Horizontal Clip.
-;   $89   : BG2 Map Vertical Clip.
-;   $8A   : BG3 Map Horizontal Clip.
-;   $8B   : BG3 Map Vertical Clip.
-;
-;   $91   : low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
-;   $92   : high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
+;       $91   : low byte of  BG1 DMA buffer address for y-movement and fullscreen updates.
+;       $92   : high byte of BG1 DMA buffer address for y-movement and fullscreen updates.
 
-;   $93   : low byte of  BG1 DMA buffer address for x-movement updates (column 1).
-;   $94   : high byte of BG1 DMA buffer address for x-movement updates (column 1).
-;   $95   : low byte of  BG1 DMA buffer address for x-movement updates (column 2).
-;   $96   : high byte of BG1 DMA buffer address for x-movement updates (column 2).
+;       $93   : low byte of  BG1 DMA buffer address for x-movement updates (column 1).
+;       $94   : high byte of BG1 DMA buffer address for x-movement updates (column 1).
+;       $95   : low byte of  BG1 DMA buffer address for x-movement updates (column 2).
+;       $96   : high byte of BG1 DMA buffer address for x-movement updates (column 2).
 ;
-;   $97   : low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
-;   $98   : high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
+;       $97   : low byte of  BG2 DMA buffer address for y-movement and fullscreen updates.
+;       $98   : high byte of BG2 DMA buffer address for y-movement and fullscreen updates.
 ;
-;   $99   : low byte of  BG2 DMA buffer address for y-movement updates (column 1).
-;   $9a   : high byte of BG2 DMA buffer address for x-movement updates (column 1).
-;   $9b   : low byte of  BG2 DMA buffer address for x-movement updates (column 2).
-;   $9c   : high byte of BG2 DMA buffer address for x-movement updates (column 2).
+;       $99   : low byte of  BG2 DMA buffer address for y-movement updates (column 1).
+;       $9a   : high byte of BG2 DMA buffer address for x-movement updates (column 1).
+;       $9b   : low byte of  BG2 DMA buffer address for x-movement updates (column 2).
+;       $9c   : high byte of BG2 DMA buffer address for x-movement updates (column 2).
 ;
-;   $9d   : low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
-;   $9e   : high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
+;       $9d   : low byte of  BG3 DMA buffer address for y-movement and fullscreen updates.
+;       $9e   : high byte of BG3 DMA buffer address for y-movement and fullscreen updates.
 ;
-;   $9f   : low byte of  BG3 DMA buffer address for x-movement updates (column 1).
-;   $a0   : high byte of BG3 DMA buffer address for x-movement updates (column 1).
-;   $a1   : low byte of  BG3 DMA buffer address for x-movement updates (column 2).
-;   $a2   : high byte of BG3 DMA buffer address for x-movement updates (column 2).
+;       $9f   : low byte of  BG3 DMA buffer address for x-movement updates (column 1).
+;       $a0   : high byte of BG3 DMA buffer address for x-movement updates (column 1).
+;       $a1   : low byte of  BG3 DMA buffer address for x-movement updates (column 2).
+;       $a2   : high byte of BG3 DMA buffer address for x-movement updates (column 2).
 ;
-;   $0541 : BG1 current x-coordinate pivot.
-;   $0542 : BG1 current y-coordinate pivot.
+; @ RAM Indirect Map:
+;   Field:
+;       $0541 : BG1 current x-coordinate pivot.
+;       $0542 : BG1 current y-coordinate pivot.
 ;
-;   $0543 : BG2 current x-coordinate pivot.
-;   $0544 : BG2 current y-coordinate pivot.
+;       $0543 : BG2 current x-coordinate pivot.
+;       $0544 : BG2 current y-coordinate pivot.
 ;
-;   $0545 : BG3 current x-coordinate pivot.
-;   $0546 : BG3 current y-coordinate pivot.
+;       $0545 : BG3 current x-coordinate pivot.
+;       $0546 : BG3 current y-coordinate pivot.
 ;
-;   $0547 : Added to $73 -- dunno.
+;       $0547 : Added to $73 -- dunno.
 ;
-;   $062c : X-Scroll start + Camera start?
+;       $062c : X-Scroll start + Camera start?
 ;
-;   $0960 : exact character x-offset in pixels (not true in all areas).
-;   $0963 : exact character y-offset in pixels (not true in all areas).
+;       $0960 : exact character x-offset in pixels (not true in all areas).
+;       $0963 : exact character y-offset in pixels (not true in all areas).
 ;
-;   $0970 : character x position (not true in all areas).
-;   $0971 : character y position (not true in all areas).
+;       $0970 : character x position (not true in all areas).
+;       $0971 : character y position (not true in all areas).
 ;
-;   $0974 : current controller movement direction. 0 if controller isn't initiating movement (not true in all areas).
-;   $0975 : current controller movement direction (stored). 0 if controller isn't initiating movement (not true in all areas).
+;       $0974 : current controller movement direction. 0 if controller isn't initiating movement (not true in all areas).
+;       $0975 : current controller movement direction (stored). 0 if controller isn't initiating movement (not true in all areas).
 ;
-; Field WRAM Buffers:
-;   $7e0500 : OAM buffer.
-;   $7e81b3 : location of buffer looping values (switches on hsync intervals?).
-;
-;   $7fd840 - $7fd8bf: Partial BG1 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
-;   $7fd8c0 - $7fd93f: Partial BG2 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
-;   $7fd940 - $7fd9bf: Partial BG3 Map for Horizontal Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
-;
-;   $7fd9c0 - $7fda3f: Partial BG2 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
-;   $7fe1c0 - $7fe23f: Partial BG2 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
-;   $7fe9c0 - $7fea3f: Partial BG3 Map for Vertical Scrolling (2 x 32 tiles, 2 bytes per 8x8 tile)
-;
-;   $7fd9c0 - $7fe1bf: BG1 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
-;   $7fe1c0 - $7fe9bf: BG2 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
-;   $7fe9c0 - $7ff1bf: BG3 Map for Full Updates (32 x 32 tiles, 2 bytes per 8x8 tile)
-;
-; Field Code:
-;   $c02a78 - $c02aC9 : Column Update DMA Code for BG1 in the Field
-;   $c02aca - $c02afa : Row    Update DMA Code for BG2 in the Field
-;   $c02afb - $c02b4c : Column Update DMA Code for BG2 in the Field
-;   $c02b4d - $c02b7d : Row    Update DMA Code for BG3 in the Field
-;   $c02b7e - $c02bcf : Column Update DMA Code for BG3 in the Field
-;
-; World Map WRAM Buffers:
-;   0x7e6b30 : OAM Table 1 start (in CPU memory).
-;   0x7e6d30 : OAM Table 2 start (in CPU memory).
-;   0x7eb5da : x-location of airship on-screen.
-;   0x7eb5dc : y-location of airship on-screen.
-;
-; VRAM address map (original) (assuming 8-bit word size):
-;   $0000 - $5fff  : Tile data (BG1 & BG2).
-;   $6000 - $7fff  : Tile data (BG3).
-;   $8000 - $87ff  : Message Borders (BG1).
-;   $8800 - $8fff  : Message Text (BG3) (Top and bottom half are duplicates).
-;   $9000 - $97ff  : Bottom Layer Tiles (BG1).
-;   $9800 - $9fff  : Bottom Layer Tiles Alt (BG1).
-;   $a000 - $a7ff  : Top Layer Tiles (BG2).
-;   $a800 - $afff  : Top Layer Tiles Alt (BG2).
-;   $b000 - $b7ff  : Effects (BG3).
-;   $b800 - $bfff  : Effects Alt (BG3).
-;   $c000 - $dfff  : Sprite Locations (OAM).
-;   $e000 - $ffff  : Sprite Data (OAM).
-;
-; VRAM address map (Wide-screen) (assuming 8-bit word size):
-;   $0000 - $5fff : Tile data (BG1 & BG2).
-;   $6000 - $7fff : Tile data (BG3).
-;   $8000 - $87ff : Message Borders (BG1).
-;   $8800 - $8fff : Message Text (Top and bottom half are duplicates) (BG3).
-;   $9000 - $9fff : Ground Tiles (Expanded) (BG1).
-;   $a000 - $afff : Roof Tiles (Expanded) (BG2).
-;   $b000 - $bfff : Effects (Expanded) (BG3).
-;   $c000 - $dfff : Sprite Locations (OAM).
-;   $e000 - $ffff : Sprite Data (OAM).
-;
-; Reserved Memory for Widescreen:
-;   $15ff : Configurable mini-map state byte.
-;
-; Walk through walls in Towns/Dungeons cheat:
-;   Raw : C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
-;   Game Genie : 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
-;
-; Walk though walls in Overworld:
-;   Raw : EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
-;   Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
+; @ ROM Code Map:
+;   Field:
+;       $c01cf3 - $c01d23 : Full   Update DMA           Code for BG1.
+;       $c01d24 - $c01d5e : Full   Update DMA           Code for BG1.
+;       $c01d5f - $c01d8f : Full   Update DMA           Code for BG2.
+;       $c01d90 - $c01dca : Full   Update DMA           Code for BG2.
+;       $c01dcb - $c01dfb : Full   Update DMA           Code for BG3.
+;       $c01dfc - $c91e36 : Full   Update DMA           Code for BG3.
+;       $c01e37 - $c01ec3 : Full   Update DMA check     Code for BG1, BG2, BG3.
+;       $c01ec4 - $c01f07 : Full   Update Map Data      Code for BG1, BG2, BG3 (e.g. open door).
+;       $c01f08 - $c01f13 : Full   Update Check         Code for BG1.
+;       $c01f14 - $c01fc1 : Full   Update Buffering     Code for BG1.
+;       $c01fc2 - $c01fcd : Full   Update Check         Code for BG2.
+;       $c01fce - $c02080 : Full   Update Buffering     Code for BG2.
+;       $c02081 - $c0208c : Full   Update Check         Code for BG3.
+;       $c0208d - $c02101 : Full   Update Buffering     Code for BG3.
+;       $c02102 - $c02138 : Column Update Check         Code for BG1, BG2.
+;                           Row/Column Update Check     Code for BG3.
+;       $c01239 - $c02153 : Row    Update Check         Code for BG1, BG2,
+;       $c02154 - $c0220f : Row    Update Buffering     Code for BG1.
+;       $c02210 - $c022ce : Column Update Buffering     Code for BG1.
+;       $c022cf - $c0238a : Row    Update Buffering     Code for BG2.
+;       $c0238b - $c0244d : Column Update Buffering     Code for BG2.
+;       $c0244e - $c02499 : Row    Update Pre-Buffering Code for BG3.
+;       $c0249a - $c02558 : Row    Update Buffering     Code for BG3.
+;       $c02559 - $c0265b : Column Update Buffering     Code for BG3.
+;       $c0265c - $c0268c : Color Palette Load          Code.
+;       $c0268d - $c026d7 : Tile Data DMA Check         Code for BG1, BG2.
+;       $c026d8 - $c0285e : Tile Data DMA               Code for BG1, BG2.
+;       $c0275f - $c027d9 : Tile Data DMA               Code for BG3.
+;       $c027da - $c02882 : Tile Formation              Code for BG1, BG2.
+;       $c02883 - $c0296a : Map Load                    Code for BG1, BG2.
+;       $c0296b - $c0297f : Map Load                    Code for BG3.
+;       $c02980 - $c02a46 : Map Decompression           Code.
+;       $c02a47 - $c02a77 : Row    Update DMA           Code for BG1.
+;       $c02a78 - $c02aC9 : Column Update DMA           Code for BG1.
+;       $c02aca - $c02afa : Row    Update DMA           Code for BG2.
+;       $c02afb - $c02b4c : Column Update DMA           Code for BG2.
+;       $c02b4d - $c02b7d : Row    Update DMA           Code for BG3.
+;       $c02b7e - $c02bcf : Column Update DMA           Code for BG3.
 
+; @ WRAM Address Map:
+;   Field:
+;       $7e0500 : OAM buffer.
+;       $7e81b3 : location of buffer looping values (switches on hsync intervals?).
+;
+;       $7fd840 - $7fd8bf: Partial BG1 Map for Horizontal Scrolling (128 bytes) (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
+;       $7fd8c0 - $7fd93f: Partial BG2 Map for Horizontal Scrolling (128 bytes) (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
+;       $7fd940 - $7fd9bf: Partial BG3 Map for Horizontal Scrolling (128 bytes) (2 x 32 tiles, 2 bytes per 8x8 tile) (first column, second column)
+;
+;       $7fd9c0 - $7fda3f: Partial BG2 Map for Vertical Scrolling (128 bytes) (2 x 32 tiles, 2 bytes per 8x8 tile)
+;       $7fe1c0 - $7fe23f: Partial BG2 Map for Vertical Scrolling (128 bytes) (2 x 32 tiles, 2 bytes per 8x8 tile)
+;       $7fe9c0 - $7fea3f: Partial BG3 Map for Vertical Scrolling (128 bytes) (2 x 32 tiles, 2 bytes per 8x8 tile)
+;
+;       $7fd9c0 - $7fe1bf: BG1 Map for Full Updates (2048 bytes) (32 x 32 tiles, 2 bytes per 8x8 tile)
+;       $7fe1c0 - $7fe9bf: BG2 Map for Full Updates (2048 bytes) (32 x 32 tiles, 2 bytes per 8x8 tile)
+;       $7fe9c0 - $7ff1bf: BG3 Map for Full Updates (2048 bytes) (32 x 32 tiles, 2 bytes per 8x8 tile)
+;
+;   World Map:
+;       0x7e6b30 : OAM Table 1 start (in CPU memory).
+;       0x7e6d30 : OAM Table 2 start (in CPU memory).
+;       0x7eb5da : x-location of airship on-screen.
+;       0x7eb5dc : y-location of airship on-screen.
+;
+; @ VRAM Address Map:
+;   Original (assuming 8-bit word size):
+;       $0000 - $5fff  : Tile data (BG1 & BG2).
+;       $6000 - $7fff  : Tile data (BG3).
+;       $8000 - $87ff  : Message Borders (BG1).
+;       $8800 - $8fff  : Message Text (BG3) (Top and bottom half are duplicates).
+;       $9000 - $97ff  : Bottom Layer Tiles (BG1).
+;       $9800 - $9fff  : Bottom Layer Tiles Alt (BG1).
+;       $a000 - $a7ff  : Top Layer Tiles (BG2).
+;       $a800 - $afff  : Top Layer Tiles Alt (BG2).
+;       $b000 - $b7ff  : Effects (BG3).
+;       $b800 - $bfff  : Effects Alt (BG3).
+;       $c000 - $dfff  : Sprite Locations (OAM).
+;       $e000 - $ffff  : Sprite Data (OAM).
+;
+;   Wide-screen (assuming 8-bit word size):
+;       $0000 - $5fff : Tile data (BG1 & BG2).
+;       $6000 - $7fff : Tile data (BG3).
+;       $8000 - $87ff : Message Borders (BG1).
+;       $8800 - $8fff : Message Text (Top and bottom half are duplicates) (BG3).
+;       $9000 - $9fff : Ground Tiles (Expanded) (BG1).
+;       $a000 - $afff : Roof Tiles (Expanded) (BG2).
+;       $b000 - $bfff : Effects (Expanded) (BG3).
+;       $c000 - $dfff : Sprite Locations (OAM).
+;       $e000 - $ffff : Sprite Data (OAM).
+;
+; @ Reserved Memory Map:
+;   Wide-screen:
+;       $15ff : Configurable mini-map state byte.
+;
+; @ Cheat Codes:
+;   Walk through walls in Towns/Dungeons:
+;       Raw : C04E4E:EA+C04E4F:EA+C04E57:EA+C04E58:EA+C04E6A:EA+C04E6B:EA+C04E73:EA+C04E74:EA+C04E7E:EA+C04E7F:EA+C04E86:EA+C04E87:EA+C04E8D:EA+C04E8E:EA+C04EA9:80
+;       Game Genie : 3C00-8767+3C00-87A7+3C09-8FA7+3C09-84D7+3C01-8467+3C01-84A7+3C05-8DA7+3C05-8FD7+3C05-8767+3C05-87A7+3C06-8F67+3C06-8FA7+3C06-8707+3C06-8767+6D0C-8407
+;
+;   Walk though walls in Overworld:
+;       Raw : EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
+;       Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
+;
 
 
 ;===================================================================
-; Description:
+; Section:
+; @ Cheats
 ;
-; Cheats...
+; Description:
+;   Cheats.
 ;
 ; - Walk through Walls in Towns/Dungeons.
 ; - Walk through Walls in Overworld.
@@ -175,9 +217,11 @@ pushpc
 pullpc
 
 ;===================================================================
-; Description:
+; Section:
+; @ Lookup Tables
 ;
-; Lookup tables.
+; Description:
+;   Lookup tables.
 ;
 ; - OAM2 bitwise table for looking up the location of the 9th x-bit to set for a given sprite number.
 ;
@@ -185,12 +229,13 @@ oam2_bit_vals:
 {
     db $01,$04,$10,$40 ; bits: 00_00_00_01; 00_00_01_00, 00_01_00_00, 01_00_00_00
 }
-;----
 
 ;===================================================================
-; Description:
+; Section:
+; @ Stack Setup
 ;
-; Stack modifications...
+; Description:
+;   Stack modifications.
 ;
 ; - Reserve stack space for patch usage.
 ; - Ex-map state for displaying the mini-map in 4 locations.
@@ -215,52 +260,11 @@ setup_vars:
 }
 
 ;===================================================================
-; Description (BG1, BG2, & BG3):
+; Section:
+; @ OAM Sprite Boundaries
 ;
-; Buffer size modifications...
-;
-; - Increase buffer size.
-; - Remove pixel masks for screen edges.
-;
-pushpc
-{
-    ; Modify buffers to be 512x256.
-    org $c005b7             ; BG1
-    lda #$49
-    org $c03f1f             ; BG1
-    lda #$49
-    org $c005bc             ; BG2
-    lda #$51
-    org $c03f2d             ; BG2
-    lda #$51
-    org $c005c1             ; BG3
-    lda #$59
-    org $c03f49             ; BG3
-    lda #$59
-    ;org $c03f17            ; BG1 - msgbox
-    ;lda #$41
-    ;org $c03f3b            ; BG2 - text
-    ;lda #$45
-    ; Remove pixel masking along edges.
-    org $c005e7             ; left coordinate: town/dungeon.
-    lda #$00
-    org $c005ec             ; right coordinate: town/dungeon.
-    lda #$ff
-    org $ee9003             ; left coordinate: overworld.
-    lda #$00
-    org $ee9008             ; right coordinate: overworld.
-    lda #$ff
-    ;org $d4cdc6            ; left coordinate: load menu.
-    ;lda #$00
-    ;org $d4cdce            ; right coordinate: load menu.
-    ;lda #$ff
-}
-pullpc
-
-;===================================================================
-; Description (OAM):
-;
-; Sprite Drawing boundary expansion...
+; Description:
+;   Sprite Drawing boundary expansion.
 ;
 pushpc
 {
@@ -426,10 +430,13 @@ exp_draw_bnds_reg_sprite:
 }
 
 ;===================================================================
-; Description (OAM):
+; Section:
+; @ OAM Configurable Mini-map
 ;
-; Configurable mini-map logic for displaying the mini-map in 4 different possible locations. Implements
-; logic for five different states. Byte $15FF as been reserved on the the stack to store the state.
+; Description:
+;   Configurable mini-map logic for displaying the mini-map in 4 different possible locations. Implements
+;   logic for five different states. Byte $15FF as been reserved on the the stack to store the state.
+;
 ; 0 - Mini-map not displayed.
 ; 1 - Mini-map displayed on the mid-right.
 ; 2 - Mini-map displayed on the far-right.
@@ -625,9 +632,56 @@ mmap_set_marker_loc:
 }
 
 ;===================================================================
-; Description (BG1, BG2, & BG3):
+; Section:
+; @ BG Buffer Size
 ;
-; Scrolling modifications...
+; Description:
+;   Buffer size modifications.
+;
+; - Increase buffer size.
+; - Remove pixel masks for screen edges.
+;
+pushpc
+{
+    ; Modify buffers to be 512x256.
+    org $c005b7             ; BG1
+    lda #$49
+    org $c03f1f             ; BG1
+    lda #$49
+    org $c005bc             ; BG2
+    lda #$51
+    org $c03f2d             ; BG2
+    lda #$51
+    org $c005c1             ; BG3
+    lda #$59
+    org $c03f49             ; BG3
+    lda #$59
+    ;org $c03f17            ; BG1 - msgbox
+    ;lda #$41
+    ;org $c03f3b            ; BG2 - text
+    ;lda #$45
+    ; Remove pixel masking along edges.
+    org $c005e7             ; left coordinate: town/dungeon.
+    lda #$00
+    org $c005ec             ; right coordinate: town/dungeon.
+    lda #$ff
+    org $ee9003             ; left coordinate: overworld.
+    lda #$00
+    org $ee9008             ; right coordinate: overworld.
+    lda #$ff
+    ;org $d4cdc6            ; left coordinate: load menu.
+    ;lda #$00
+    ;org $d4cdce            ; right coordinate: load menu.
+    ;lda #$ff
+}
+pullpc
+
+;===================================================================
+; Section:
+; @ BG Scroll Registers
+;
+; Description:
+;   Scrolling modifications.
 ;
 ; - Remove 8-pixel shift on sprites.
 ; - Remove 8-pixel shift of scroll registers.
@@ -661,9 +715,11 @@ pushpc
 pullpc
 
 ;===================================================================
-; Description (BG1, BG2):
+; Section:
+; @ BG Full Updates
 ;
-; full buffer update modifications (only used when needing to update on-screen elements in an existing buffer)...
+; Description:
+;   Full buffer update modifications (only used when needing to update on-screen elements in an existing buffer).
 ;
 ; - Disable buffer swapping during full screen buffer updates.
 ; - Keep BG in 512x256 mode during full screen buffer updates.
@@ -844,8 +900,11 @@ full_dma_cpy_bg3:
 
 
 ;===================================================================
-; Description (BG1, BG2, & BG3):
-; Row/Vertical/y movement modifications (also used when entering new areas)...
+; Section:
+; @ BG Y Movement Updates
+;
+; Description:
+;   Contains Row/Vertical/Y movement modifications (also used when entering new areas).
 ;
 ; - Preload additional row tile data into new spots of RAM located
 ;   contigously below the original buffer spots.
@@ -1033,9 +1092,11 @@ row_dma_cpy_bg3:
 }
 
 ;===================================================================
-; Description (BG1, BG2,& BG3):
+; Section:
+; @ BG X Movement Updates
 ;
-; Column/Horizontal/x movement modifications...
+; Description:
+;   Column/Horizontal/X movement modifications.
 ;
 ; - Modify Load location of column tiles when moving right (+16 columns).
 ; - Modify the store location for VRAM to place column tiles in the second
