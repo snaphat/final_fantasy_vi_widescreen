@@ -823,8 +823,8 @@ pushpc
     and #$5f
     org $c01fff             ; BG2
     and #$5f
-    ;org $c020bc             ; BG3
-    ;and #$5f
+    org $c020bc             ; BG3
+    and #$5f
     ; Double the amount of columns looped.
     org $c01f61             ; BG1
     lda #$20
@@ -844,15 +844,15 @@ pushpc
     ldx #$6000
     org $c01d76             ; BG2
     ldx #$7000
-    ;org $c01de2             ; BG3
-    ;ldx #$8000
+    org $c01de2             ; BG3
+    ldx #$d9c0
     ; Change src addr for DMA to new bot buffer.
     org $c01d45             ; BG1
     ldx #$6400
     org $c01db1             ; BG2
     ldx #$7400
-    ;org $c01e1d             ; BG3
-    ;ldx #$8400
+    org $c01e1d             ; BG3
+    ldx #$ddc0
     ; Change bank addr for DMA to new top buffer.
     org $c01d10             ; BG1
     lda #$3d
@@ -874,9 +874,9 @@ pushpc
     org $c01d8a             ; BG2
     jsl full_top_dma_cpy_bg2
     nop
-    ;org $c01df6             ; BG3
-    ;jsl full_top_dma_cpy_bg3
-    ;nop
+    org $c01df6             ; BG3
+    jsl full_top_dma_cpy_bg3
+    nop
     ; Call a second DMA operation for bot buf (right half).
     org $c01d59             ; BG1
     jsl full_bot_dma_cpy_bg1
@@ -884,9 +884,9 @@ pushpc
     org $c01dc5             ; BG2
     jsl full_bot_dma_cpy_bg2
     nop
-    ;org $c01e31             ; BG3
-    ;jsl full_bot_dma_cpy_bg3
-    ;nop
+    org $c01e31             ; BG3
+    jsl full_bot_dma_cpy_bg3
+    nop
 }
 pullpc
 
@@ -930,7 +930,7 @@ full_tile_pivot_bg3:
 
 macro full_tile_ld(src, dest)
     ; Buffers tiles for an entire 512x256 BG on a per tile basis. This
-    ; is modified logic to account for the storing data to two non-contigious
+    ; is modified logic to account for storing data to two non-contigious
     ; buffers in VRAM (thanks SNES VRAM address space).
     lda ($2a)               ; load tile value.
     rep #$20                ; clear 8-bit accum mode.
@@ -947,8 +947,8 @@ macro full_tile_ld(src, dest)
     adc #$07c0              ; shift offset to second buffer.
     tax                     ; transfer updated offset to x.
     +: ; left buffer - no shift.
-    lda $2a                 ; load tile addr index.
     ; Check wrap-around.
+    lda $2a                 ; load tile addr index.
     sec                     ; set carry.
     sbc $3f7ffe             ; subtract pre-computed wrap-around normalization factor.
     and #$0020              ; check if in wrap-around area.
@@ -1033,12 +1033,12 @@ full_bot_dma_cpy_bg2:
 
 full_top_dma_cpy_bg3:
 {
-    %full_dma_cpy(#$8800, $9d, #$0400)
+    %full_dma_cpy(#$e1c0, $9d, #$0400)
 }
 
 full_bot_dma_cpy_bg3:
 {
-    %full_dma_cpy(#$8c00, $9d, #$0600)
+    %full_dma_cpy(#$e5c0, $9d, #$0600)
 }
 
 ;===================================================================
@@ -1121,6 +1121,55 @@ pushpc
 }
 pullpc
 
+row_tile_ld_bg3_shf:
+    ; BG3 row load helper subroutine that contains the logic
+    ; for shifting the buffer location to the right buffer
+    ; and computing wrap around for full-loads. Necessary,
+    ; This is necessary because full loads use the row logic
+    ; for BG3. The original code worked without branching
+    ; because the buffer was contiguous so bitwise operations
+    ; worked.
+    pha                     ; Optimized from 2 byte instruction (sta).
+    and #$003f              ; Original instruction.
+    tax                     ; Original instruction.
+    ; Check if full or row load.
+    lda $00055c             ; address is non-zero for full-load.
+    cmp #$0000              ;
+    beq ++                  ; branch if row-load.
+    ; START full load logic.
+    ; Address shift check for right buffer.
+    tya                     ; transfer dest offset y->a.
+    bit #$0040              ; compare dest to 0x40.
+    beq +                   ; jump if less than 0x40.
+    clc                     ; clear carry.
+    adc #$07c0              ; add 0x07c0 to shift to right buffer (further shift than for a row load).
+    tay                     ; transfer dest offset a->y.
+    +:
+    ; Check wrap-around.
+    lda $2a                 ; load tile addr index.
+    sec                     ; set carry.
+    sbc $3f7ffe             ; subtract pre-computed wrap-around normalization factor.
+    and #$0020              ; check if in wrap-around area.
+    beq .end                ; branch if NOT in wrap-around coord area.
+    tya                     ; transfer dest addr to accum.
+    sec                     ; set carry.
+    sbc #$0080              ; subtract 64 to shift dest up a row for wrap-around tiles.
+    tay                     ; transfer updated offset to x.
+    bra .end                ; branch to end.
+    ; END full load logic.
+    ++:
+    ; START row load logic.
+    tya                     ; transfer dest offset y->a.
+    bit #$0040              ; compare dest to 0x40.
+    beq .end                ; jump if less than 0x40.
+    clc                     ; clear carry.
+    adc #$0040              ; add 0x40 to shift to right buffer.
+    tay                     ; transfer dest offset a->y.
+    ; END row load logic.
+    .end:
+    pla                     ; Optimized from 2 byte instruction (lda).
+    rtl
+
 macro row_tile_ld_bg3()
     ; Row load algorithm that adds support for buffering
     ; 64x2, 8 by 8 sized tiles for BG3. It has been
@@ -1128,25 +1177,14 @@ macro row_tile_ld_bg3()
     ; size constraints so no jumps are necessary.
     sbc #$0b                ; pivot of -11 instead of -7.
     skip +$18
-    and #$1f                ; Clip store offset high bit for BG1, BG2, & BG3 buffers.
+    and #$1f                ; Clip store offset high bit for BG3.
     skip +$16
     lda #$20                ; Double loop iterations for copying data to BG3 internal buffers (Non-vram).
     skip +$08
+    phy                     ; push original dest (right buf for addr shift).
     lda $8000,x             ; Original  instruction.
     rep #$20                ; Original  instruction.
-    phy                     ; push original dest (right buf for addr shift).
-    pha                     ; Optimized from 2 byte instruction (sta).
-    and #$003f              ; Original  instruction.
-    tax                     ; Original  instruction.
-    cpy #$0040              ; compare dest to 0x40.
-    ; Address shift check for right buffer.
-    bcc +                   ; jump if less than 0x40.
-    tya                     ; transfer dest offset y->a.
-    clc                     ; clear carry.
-    adc #$0040              ; add 0x40 to shift to right buffer.
-    tay                     ; transfer dest offset a->y.
-    +
-    pla                     ; Optimized from 2 byte instruction (lda).
+    jsl row_tile_ld_bg3_shf ; Contains the logic for shifting to the right buffer and wrap-around.
     and #$00c0              ; Original  instruction.
     ora $36                 ; Original  instruction.
     sta $20                 ; Original  instruction.
@@ -1207,9 +1245,17 @@ macro row_tile_ld_bg3()
     inc                     ; original  instruction.
     sta $d9c0, y            ; Moved buffer (expanded for widescreen).
     ++++:
+    lda $00055c
+    tay
     pla                     ; pop original dest (right buf for addr shift).
     inc #4                  ; original instructions.
-    and #$ff7f              ; Clip high bit for roll around of BG1, BG2 buffers addresses.
+    cpy #$0000              ; Check if full-load or row load.
+    bne +                   ; branch on full load.
+    and #$ff7f              ; Clip high bit for roll around of BG3 buffers addresses (for tile-loads).
+    bra ++
+    +:
+    nop
+    ++:
 endmacro
 
 pushpc
@@ -1238,12 +1284,6 @@ macro dma_cpy(src, dest, off)
     lda #$0001              ; 1 -> a.
     sep #$20                ; set 8-bit accum mode.
     sta $420b               ; Initiate DMA transfer.
-    ;pha
-    ;lda #$04
-    ;sta $055a
-    ;sta $055b
-    ;sta $055c
-    ;pla
     rtl                     ; return.
 endmacro
 
