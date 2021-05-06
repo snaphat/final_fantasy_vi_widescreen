@@ -992,53 +992,53 @@ full_tile_ld_bg2:
 
 ;----
 
-macro full_dma_cpy(dest, src, off)
-                ; DMA for second half of BG buffers.
-    lda #$01    ; a901      ; 1 -> a.
-    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
-    stz $420b   ; 9c0b42    ; Clear DMA transfer flag.
-    stx $4305   ; 8e0543    ; set amount of bytes to transfer.
-    ldx <dest>  ; a2????    ; load second half of tile buffer.
-    stx $4302   ; 8e0243    ; set DMA dest addr.
-    rep #$20    ; c220      ; clear 8-bit accum mode.
-    lda <src>   ; a5??      ; load src addr.
-    clc         ; 18        ; clear carry.
-    adc <off>   ; 690004    ; add 0x400 (offset to 2nd half of buf).
-    sta $2116   ; 8d1621    ; set DMA src addr.
-    lda #$0001  ; a90100    ; 1 -> a.
-    sep #$20    ; e220      ; set 8-bit accum mode.
-    sta $420b   ; 8d0b42    ; Initiate DMA transfer.
-    rtl         ; 6b        ; return.
+macro dma_cpy(src, dest, off)
+    ; DMA for second half of BG buffers.
+    lda #$01                ; 1 -> a.
+    sta $420b               ; Initiate DMA transfer.
+    stz $420b               ; Clear DMA transfer flag.
+    stx $4305               ; set amount of bytes to transfer.
+    ldx <src>               ; load second half of tile buffer.
+    stx $4302               ; set DMA src addr.
+    rep #$20                ; clear 8-bit accum mode.
+    lda <dest>              ; load dest addr.
+    clc                     ; clear carry.
+    adc <off>               ; add 0x400 (offset to 2nd half of buf).
+    sta $2116               ; set DMA dest addr.
+    lda #$0001              ; 1 -> a.
+    sep #$20                ; set 8-bit accum mode.
+    sta $420b               ; Initiate DMA transfer.
+    rtl                     ; return.
 endmacro
 
 full_top_dma_cpy_bg1:
 {
-    %full_dma_cpy(#$6800, $91, #$0400)
+    %dma_cpy(#$6800, $91, #$0400)
 }
 
 full_bot_dma_cpy_bg1:
 {
-    %full_dma_cpy(#$6c00, $91, #$0600)
+    %dma_cpy(#$6c00, $91, #$0600)
 }
 
 full_top_dma_cpy_bg2:
 {
-    %full_dma_cpy(#$7800, $97, #$0400)
+    %dma_cpy(#$7800, $97, #$0400)
 }
 
 full_bot_dma_cpy_bg2:
 {
-    %full_dma_cpy(#$7c00, $97, #$0600)
+    %dma_cpy(#$7c00, $97, #$0600)
 }
 
 full_top_dma_cpy_bg3:
 {
-    %full_dma_cpy(#$e1c0, $9d, #$0400)
+    %dma_cpy(#$e1c0, $9d, #$0400)
 }
 
 full_bot_dma_cpy_bg3:
 {
-    %full_dma_cpy(#$e5c0, $9d, #$0600)
+    %dma_cpy(#$e5c0, $9d, #$0600)
 }
 
 ;===================================================================
@@ -1268,25 +1268,6 @@ pullpc
 
 ;----
 
-macro dma_cpy(src, dest, off)
-    ; DMA for second half of BG buffers.
-    lda #$01                ; 1 -> a.
-    sta $420b               ; Initiate DMA transfer.
-    stz $420b               ; Clear DMA transfer flag.
-    stx $4305               ; set amount of bytes to transfer.
-    ldx <src>               ; load second half of tile buffer.
-    stx $4302               ; set DMA src addr.
-    rep #$20                ; clear 8-bit accum mode.
-    lda <dest>              ; load dest addr.
-    clc                     ; clear carry.
-    adc <off>               ; add 0x400 (offset to 2nd half of buf).
-    sta $2116               ; set DMA dest addr.
-    lda #$0001              ; 1 -> a.
-    sep #$20                ; set 8-bit accum mode.
-    sta $420b               ; Initiate DMA transfer.
-    rtl                     ; return.
-endmacro
-
 macro row_dma_cpy(loc, src, dest, bank)
     ; Row DMA for second half of BG buffers.
     pushpc
@@ -1358,7 +1339,6 @@ pushpc
     jsl col_dma_adr_mod_bg3
 }
 pullpc
-
 
 ;----
 
