@@ -1315,34 +1315,9 @@ endmacro
 ; around so coordinates need clamped after that.
 ;
 
-pushpc
-{
-    ; Column load modifications:
-    org $c02220             ; BG1 - moving right
-    adc #$14                ; +20 instead of 8. Why? Seems to be 0xc added.
-    org $c0222b             ; BG1 - moving left
-    sbc #$0b                ; -11 instead of -7.
-    org $c0239b             ; BG2 - moving right
-    adc #$14                ; +20 instead of 8. Why? Seems to be 0xc added.
-    org $c023a6             ; BG2 - moving left
-    sbc #$0b                ; -11 instead of -7.
-    org $c02569             ; BG3 - moving right
-    adc #$14                ; +20 instead of 8. Why? Seems to be 0xc added.
-    org $c02578             ; BG3 - moving left
-    sbc #$0b                ; -11 instead of -7.
-    ; DMA copy modifications:
-    org $c022ca             ; BG1
-    jsl col_dma_adr_mod_bg1
-    org $c02449             ; BG2
-    jsl col_dma_adr_mod_bg2
-    org $c02657             ; BG3
-    jsl col_dma_adr_mod_bg3
-}
-pullpc
-
 ;----
 
-macro col_dma_adr_mod(src, dest1, dest2)
+macro col_dma_adr_mod_algo(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
     pha         ; 48        ; push a
     rep #$21                ; set 16-bit accumulator mode.
@@ -1365,29 +1340,34 @@ macro col_dma_adr_mod(src, dest1, dest2)
     sbc #$0c    ; e90c      ; normalize subtract 12
     and #$10    ; 2910      ; normalize
     cmp #$00    ; c900      ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
-    bne .upd    ; d003
+    bne +       ; d003
     pla         ; 68        ; restore a.
-    bra .end    ; 8003
-    .upd:
+    bra ++      ; 8003
+    +:
     pla         ; 68        ; drop a.
     lda <src>   ; a9??      ; Load modified vram location.
-    .end:
+    ++:
     sta <dest1> ; 85??
     sta <dest2> ; 85??
     rtl         ; 6b
 endmacro
 
-col_dma_adr_mod_bg1:
-{
-    %col_dma_adr_mod(#$4c, $94, $96) ; 0x4c is the high-byte of the second half of buffer.
-}
+macro col_dma_adr_mod(loc1, loc2, loc3, src, dest1, dest2)
+    ; Row DMA for second half of BG buffers.
+    pushpc
+        org <loc1>
+        adc #$14            ; moving right +20 instead of 8. Why? Seems to be 0xc added.
+        org <loc2>
+        sbc #$0b            ; moving left -11 instead of -7.
+        org <loc3>
+        jsl +               ; DMA address modification.
+    pullpc
+    +: %col_dma_adr_mod_algo(<src>, <dest1>, <dest2>)
+endmacro
 
-col_dma_adr_mod_bg2:
-{
-    %col_dma_adr_mod(#$54, $9a, $9c) ; 0x54 is the high-byte of the second half of buffer.
-}
-
-col_dma_adr_mod_bg3:
-{
-    %col_dma_adr_mod(#$5c, $a0, $a2) ; 0x5c is the high-byte of the second half of buffer.
-}
+; BG1 DMA addr modification. ; 0x4c is the high-byte of the right buffer.
+%col_dma_adr_mod($c02220, $c0222b, $c022ca, #$4c, $94, $96)
+; BG2 DMA addr modification. ; 0x54 is the high-byte of the right buffer.
+%col_dma_adr_mod($c0239b, $c023a6, $c02449, #$54, $9a, $9c)
+; BG3 DMA addr modification. ; 0x5c is the high-byte of the right buffer.
+%col_dma_adr_mod($c02569, $c02578, $c02657, #$5c, $a0, $a2)
