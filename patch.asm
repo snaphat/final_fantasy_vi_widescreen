@@ -1146,9 +1146,9 @@ endmacro
 ; The max possible coordinate in a map is 127 or 0x7F before they loop
 ; around so coordinates need clamped after that.
 ;
-macro col_dma_adr_mod_algo(src, dest1, dest2)
+macro col_dma_adr_mod_algo(src, dest1, dest2, pivot)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
-    pha         ; 48        ; push a
+    pha                     ; push a
     rep #$21                ; set 16-bit accumulator mode.
     lda $73                 ; Load movement offset.
     adc $0547               ; Add unknown to it (this is what the original code does).
@@ -1156,32 +1156,32 @@ macro col_dma_adr_mod_algo(src, dest1, dest2)
     ; left direction:
     tdc                     ; Clear accumulator.
     sep #$20                ; set 8-bit accumulator mode.
-    lda $0541   ; ad4105    ; register with vertical pivot coordinate.
-    inc         ; 1a        ; add 1 if moving in left direction
-    bra ++      ; 8004      ; jump for right direction
+    lda <pivot>             ; register with vertical pivot coordinate.
+    inc                     ; add 1 if moving in left direction
+    bra ++                  ; jump for right direction
     +:
     ; right direction:
     tdc                     ; Clear accumulator.
     sep #$20                ; set 8-bit accumulator mode.
-    lda $0541   ; ad4105    ; register with vertical pivot coordinate.
+    lda <pivot>             ; register with vertical pivot coordinate.
     ++:
-    sec         ; 38        ; set carry for subtraction
-    sbc #$0c    ; e90c      ; normalize subtract 12
-    and #$10    ; 2910      ; normalize
-    cmp #$00    ; c900      ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
-    bne +       ; d003
-    pla         ; 68        ; restore a.
-    bra ++      ; 8003
+    sec                     ; set carry for subtraction
+    sbc #$0c                ; normalize subtract 12
+    and #$10                ; normalize
+    cmp #$00                ; 0 result implies we should use original coordinates. 1 result implies we should shift to the second vram location.
+    bne +
+    pla                     ; restore a.
+    bra ++
     +:
-    pla         ; 68        ; drop a.
-    lda <src>   ; a9??      ; Load modified vram location.
+    pla                     ; drop a.
+    lda <src>               ; Load modified vram location.
     ++:
-    sta <dest1> ; 85??
-    sta <dest2> ; 85??
-    rtl         ; 6b
+    sta <dest1>
+    sta <dest2>
+    rtl
 endmacro
 
-macro col_dma_adr_mod(loc1, loc2, loc3, src, dest1, dest2)
+macro col_dma_adr_mod(loc1, loc2, loc3, src, dest1, dest2, pivot)
     ; Row DMA for second half of BG buffers.
     pushpc
         org <loc1>
@@ -1191,12 +1191,12 @@ macro col_dma_adr_mod(loc1, loc2, loc3, src, dest1, dest2)
         org <loc3>
         jsl +               ; DMA address modification.
     pullpc
-    +: %col_dma_adr_mod_algo(<src>, <dest1>, <dest2>)
+    +: %col_dma_adr_mod_algo(<src>, <dest1>, <dest2>, <pivot>)
 endmacro
 
 ; BG1 DMA addr modification. ; 0x4c is the high-byte of the right buffer.
-%col_dma_adr_mod($c02220, $c0222b, $c022ca, #$4c, $94, $96)
+%col_dma_adr_mod($c02220, $c0222b, $c022ca, #$4c, $94, $96, $0541)
 ; BG2 DMA addr modification. ; 0x54 is the high-byte of the right buffer.
-%col_dma_adr_mod($c0239b, $c023a6, $c02449, #$54, $9a, $9c)
+%col_dma_adr_mod($c0239b, $c023a6, $c02449, #$54, $9a, $9c, $0543)
 ; BG3 DMA addr modification. ; 0x5c is the high-byte of the right buffer.
-%col_dma_adr_mod($c02569, $c02578, $c02657, #$5c, $a0, $a2)
+%col_dma_adr_mod($c02569, $c02578, $c02657, #$5c, $a0, $a2, $0545)
