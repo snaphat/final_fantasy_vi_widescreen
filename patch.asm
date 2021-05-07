@@ -839,54 +839,6 @@ pushpc
     nop #3
     ;org $000000            ; BG3 : Seems to use the row load code instead.
     ;nop #3
-    ; Change src addr for DMA to new top buffer.
-    org $c01d0a             ; BG1
-    ldx #$6000
-    org $c01d76             ; BG2
-    ldx #$7000
-    org $c01de2             ; BG3
-    ldx #$d9c0
-    ; Change src addr for DMA to new bot buffer.
-    org $c01d45             ; BG1
-    ldx #$6400
-    org $c01db1             ; BG2
-    ldx #$7400
-    org $c01e1d             ; BG3
-    ldx #$ddc0
-    ; Change bank addr for DMA to new top buffer.
-    org $c01d10             ; BG1
-    lda #$3d
-    org $c01d7c             ; BG2
-    lda #$3d
-    ;org $c01de8             ; BG3
-    ;lda #$3e
-    ; Change bank addr for DMA to new bot buffer.
-    org $c01d4b             ; BG1
-    lda #$3d
-    org $c01db7             ; BG2
-    lda #$3d
-    ;org $c01e23             ; BG3
-    ;lda #$3e
-    ; Call a second DMA operation for top buf (left half).
-    org $c01d1e             ; BG1
-    jsl full_top_dma_cpy_bg1
-    nop
-    org $c01d8a             ; BG2
-    jsl full_top_dma_cpy_bg2
-    nop
-    org $c01df6             ; BG3
-    jsl full_top_dma_cpy_bg3
-    nop
-    ; Call a second DMA operation for bot buf (right half).
-    org $c01d59             ; BG1
-    jsl full_bot_dma_cpy_bg1
-    nop
-    org $c01dc5             ; BG2
-    jsl full_bot_dma_cpy_bg2
-    nop
-    org $c01e31             ; BG3
-    jsl full_bot_dma_cpy_bg3
-    nop
 }
 pullpc
 
@@ -1011,35 +963,34 @@ macro dma_cpy(src, dest, off)
     rtl                     ; return.
 endmacro
 
-full_top_dma_cpy_bg1:
-{
-    %dma_cpy(#$6800, $91, #$0400)
-}
+macro full_dma_cpy(loc, src, dest, bank)
+    ; Row DMA for second half of BG buffers.
+    pushpc
+    org <loc>
+    ldx <src>               ; Change src addr for DMA to new top buffer.
+    skip +$03
+    lda <bank>              ; Change bank addr for DMA to new top buffer.
+    skip +$0c
+    jsl +                   ; Call a second DMA operation for top buf (right half).
+    nop
+    skip +$22
+    ldx <src>+$400          ; Change src addr for DMA to new bottom buffer.
+    skip +$03
+    lda <bank>              ; Change bank addr for DMA to new bottom buffer.
+    skip +$0c
+    jsl ++                  ; Call a second DMA operation for bottom buf (right half).
+    nop
+    pullpc
+    +:  %dma_cpy(<src>+$800, <dest>, #$400)
+    ++: %dma_cpy(<src>+$c00, <dest>, #$600)
+endmacro
 
-full_bot_dma_cpy_bg1:
-{
-    %dma_cpy(#$6c00, $91, #$0600)
-}
-
-full_top_dma_cpy_bg2:
-{
-    %dma_cpy(#$7800, $97, #$0400)
-}
-
-full_bot_dma_cpy_bg2:
-{
-    %dma_cpy(#$7c00, $97, #$0600)
-}
-
-full_top_dma_cpy_bg3:
-{
-    %dma_cpy(#$e1c0, $9d, #$0400)
-}
-
-full_bot_dma_cpy_bg3:
-{
-    %dma_cpy(#$e5c0, $9d, #$0600)
-}
+; BG1 DMA copy (not inline - requires a jump).
+%full_dma_cpy($c01d0a, #$6000, $91, #$3d)
+; BG2 DMA copy (not inline - requires a jump).
+%full_dma_cpy($c01d76, #$7000, $97, #$3d)
+; BG3 DMA copy (not inline - requires a jump).
+%full_dma_cpy($c01de2, #$d9c0, $9d, #$7f)
 
 ;===================================================================
 ; Section:
