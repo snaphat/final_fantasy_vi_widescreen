@@ -185,6 +185,66 @@ org  $c0d613
 ;       Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
 ;
 
+;===================================================================
+; Section:
+; @ Generic Macros
+;
+
+macro cmp(loc, val)
+    org <loc> : cmp <val>
+endmacro
+
+macro cpx(loc, val)
+    org <loc> : cpx <val>
+endmacro
+
+macro cpy(loc, val)
+    org <loc> : cpy <val>
+endmacro
+
+macro eor_nop3(loc)
+    org <loc> : eor #$01 : nop #3
+endmacro
+
+macro jsl(loc, lbl)
+    org <loc> : jsl <lbl>
+endmacro
+
+macro jsl_nop(loc, lbl)
+    %jsl(<loc>, <lbl>) : nop
+endmacro
+
+macro jsl_nop2(loc, lbl)
+    %jsl(<loc>, <lbl>) : nop #2
+endmacro
+
+macro lda(loc, val)
+    org <loc> : lda <val>
+endmacro
+
+macro ldx(loc, val)
+    org <loc> : ldx <val>
+endmacro
+
+macro ldy(loc, val)
+    org <loc> : ldy <val>
+endmacro
+
+macro nop(loc)
+    org <loc> : nop
+endmacro
+
+macro nop2(loc)
+    org <loc> : nop #2
+endmacro
+
+macro nop3(loc)
+    org <loc> : nop #3
+endmacro
+
+macro nop4(loc)
+    org <loc> : nop #4
+endmacro
 
 ;===================================================================
 ; Section:
@@ -199,31 +259,19 @@ org  $c0d613
 pushpc
 {
     ; Towns/Dungeons
-    org $c04e4e
-    nop #2
-    org $c04e57
-    nop #2
-    org $c04e6a
-    nop #2
-    org $c04e73
-    nop #2
-    org $c04e7e
-    nop #2
-    org $c04e86
-    nop #2
-    org $c04e8d
-    nop #2
-    org $c04ea9
-    db $80 ; bra
+    %nop2($c04e4e)
+    %nop2($c04e57)
+    %nop2($c04e6a)
+    %nop2($c04e73)
+    %nop2($c04e7e)
+    %nop2($c04e86)
+    %nop2($c04e8d)
+    org $c04ea9 : db $80 ; bra
     ; Overworld
-    org $ee1ee2
-    nop #2
-    org $ee1f30
-    nop #2
-    org $ee1f7e
-    nop #2
-    org $ee1fcb
-    nop #2
+    %nop2($ee1ee2)
+    %nop2($ee1f30)
+    %nop2($ee1f7e)
+    %nop2($ee1fcb)
 }
 pullpc
 
@@ -269,15 +317,12 @@ oam2_bit_vals:
 ;
 pushpc
 {
-    org $c00020             ; Reserve stack space (originally #15ff)
-    ldx #$15fe              ; New stack start.
-    org $c0002c
-    jsl setup_vars          ; Setup reserved variable state.
-    nop
+    %ldx($c00020, #$15fe)   ; Reserve stack space (originally #15ff)
+    %jsl_nop($c0002c,setup) ; Setup reserved variable state.
 }
 pullpc
 
-setup_vars:
+setup:
 {
     lda #$01                ; Initial value of mini-map.
     sta $15ff               ; ex-map state.
@@ -293,55 +338,50 @@ setup_vars:
 ; Description:
 ;   Sprite Drawing boundary expansion.
 ;
-pushpc
+
+
+macro rm_ex_lrg_sprite_shft(dest)
+    ; Subtract 8 from large sprite location.
+    sbc $5c
+    sec
+    sbc #$0008
+    sta <dest>
+    rtl
+endmacro
+
+exp_draw_bnds_reg_sprite:
 {
-    ; ----
-    ; Shift removal code:
-    ; ----
-    ; Remove 8 pixel shift for regular sprites.
-    org $c05bb2 ; OAM
-    nop #4
-    ; Remove 8 pixel shift for shadow clipping sprites.
-    org $c0c8c3
-    nop #3
-    ; Remove 8 pixel shift for large esper sprites.
-    org $c06579
-    nop #4
-    ; Remove 8 pixel shift for extra large chocobo sprites.
-    org $c060e0
-    jsl rm_ex_lrg_sprite_shft_chocobo
-    ; Remove 8 pixel shift for extra large magitek armor sprites.
-    org $c05d67
-    jsl rm_ex_lrg_sprite_shft_magitek
-    ; ----
-    ; Load expansion code:
-    ; ----
-    ; Expand draw bounds for regular sprites.
-    org $c05bee
-    nop                     ; xba that is now located in the jump.
-    org $c05bb9
-    jsl exp_draw_bnds_reg_sprite
-    nop
-    ; Expand draw bounds for large esper sprites.
-    org $c065b6
-    cpx #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    org $c065bb
-    cpx #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    ; Expand draw bounds for extra large chocobo sprites.
-    org $c06112
-    cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    org $c06117
-    cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    ; Expand draw bounds for extra large magitek armor sprites.
-    org $c05d99
-    cpy #$01a0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    org $c05d9e
-    cpy #$ffa0              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    ; Expand draw bounds for airship sprite.
-    org $ee476e
-    nop #3                  ; Overworld: Remove x-coordinate clamping.
-    org $ee4773
-    cmp #$010a              ; check for displaying ship
+    ; Checks if character sprite is on a negative boundary and overwrites OAM data. Negative
+    ; boundaries could be on the right or left. Anywhere outside the center of the screen.
+    ; Rather iffy considering it does it directly. For some reason the built in logic does
+    ; not work for the main character sprite so they loop along the center normally? It
+    ; remains to be seen whether the OAM locations are static for the main character or not.
+    pha
+    cpx #$0000              ; Check if character sprite apparently an X of zero here implies this?
+    bne .end                ; Branch if not character sprite.
+    and #$ff00              ; Get high byte.
+    cmp #$0000              ; Check if subtraction was negative for orienting the sprite (-64 logic).
+    beq .end                ; Branch if not negative.
+    sep #$20                ; Kick into 8-bit mode.
+    lda $050f               ; Load current OAM value for sprite that represents the character.
+    ora #$10                ; Enable negative bit to place the sprite to the right of the OAM window.
+    sta $050f               ; Store back.
+    lda $051b               ; Load current OAM value for two other sprites the represent the character.
+    ora #$50                ; 0x10 | 0x40 Enable negative bits to place the sprite(s) to the right of the OAM window.
+    sta $051b               ; Store back.
+    rep #$20                ; Kick into 16-bit mode.
+    .end:
+    pla
+
+    ; Expands the normal sprites to appear in a wider area.
+    adc #$0050              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    sep #$20                ; kick into 8-bit mode.
+    xba                     ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
+    and #$fe                ; Checking clipping to be an extra byte large from the original logic.
+    rtl
+}
+
+macro overworld_pos_inline()
     ;-------------------------------------------------------------------
     ; Modified Overworld Sprite positioning algorithm to work for
     ; widescreen. Uses 16-bit values to detect if sprites are outside of
@@ -398,63 +438,44 @@ pushpc
     ; Overworld - Airship offset shift (subtracted by #$10 to compensate for the adjustment above).
     org $ee4781
     adc #$006e
+endmacro
+
+pushpc
+{
+    ; ----
+    ; Shift removal code:
+    ; ----
+    %nop4($c05bb2)          ; Remove 8 pixel shift for regular sprites.
+    %nop3($c0c8c3)          ; Remove 8 pixel shift for shadow clipping sprites.
+    %nop4($c06579)          ; Remove 8 pixel shift for large esper sprites.
+    ; Remove 8 pixel shift for extra large chocobo sprites.
+    %jsl($c060e0, rm_ex_lrg_sprite_shft_chocobo)
+    ; Remove 8 pixel shift for extra large magitek armor sprites.
+    %jsl($c05d67, rm_ex_lrg_sprite_shft_magitek)
+    ; ----
+    ; Load expansion code:
+    ; ----
+    ; Expand draw bounds for regular sprites.
+    %nop($c05bee)           ; xba that is now located in the jump.
+    %jsl_nop($c05bb9, exp_draw_bnds_reg_sprite)
+    ; Expand draw bounds for large esper sprites.
+    %cpx($c065b6, #$ffa0)   ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    %cpx($c065bb, #$01a0)   ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    ; Expand draw bounds for extra large chocobo sprites.
+    %cpy($c06112, #$01a0)   ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    %cpy($c06117, #$ffa0)   ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    ; Expand draw bounds for extra large magitek armor sprites.
+    %cpy($c05d99, #$01a0)   ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    %cpy($c05d9e, #$ffa0)   ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
+    ; Expand draw bounds for airship sprite.
+    %nop3($ee476e)          ; Overworld: Remove x-coordinate clamping.
+    %cmp($ee4773, #$010a)   ; check for displaying ship
+    %overworld_pos_inline() ; Modify overworld positoning algorithm.
     ;--------------------------------------------------------------------------------------------------
 }
 pullpc
-
-macro rm_ex_lrg_sprite_shft(dest)
-    ; Subtract 8 from large sprite location.
-    sbc $5c
-    sec
-    sbc #$0008
-    sta <dest>
-    rtl
-endmacro
-
-rm_ex_lrg_sprite_shft_chocobo:
-{
-    %rm_ex_lrg_sprite_shft($20)
-}
-
-
-rm_ex_lrg_sprite_shft_magitek:
-{
-    %rm_ex_lrg_sprite_shft($1e)
-}
-
-;----
-
-exp_draw_bnds_reg_sprite:
-{
-    ; Checks if character sprite is on a negative boundary and overwrites OAM data. Negative
-    ; boundaries could be on the right or left. Anywhere outside the center of the screen.
-    ; Rather iffy considering it does it directly. For some reason the built in logic does
-    ; not work for the main character sprite so they loop along the center normally? It
-    ; remains to be seen whether the OAM locations are static for the main character or not.
-    pha
-    cpx #$0000              ; Check if character sprite apparently an X of zero here implies this?
-    bne .end                ; Branch if not character sprite.
-    and #$ff00              ; Get high byte.
-    cmp #$0000              ; Check if subtraction was negative for orienting the sprite (-64 logic).
-    beq .end                ; Branch if not negative.
-    sep #$20                ; Kick into 8-bit mode.
-    lda $050f               ; Load current OAM value for sprite that represents the character.
-    ora #$10                ; Enable negative bit to place the sprite to the right of the OAM window.
-    sta $050f               ; Store back.
-    lda $051b               ; Load current OAM value for two other sprites the represent the character.
-    ora #$50                ; 0x10 | 0x40 Enable negative bits to place the sprite(s) to the right of the OAM window.
-    sta $051b               ; Store back.
-    rep #$20                ; Kick into 16-bit mode.
-    .end:
-    pla
-
-    ; Expands the normal sprites to appear in a wider area.
-    adc #$0050              ; shift the boundary to load/unload sprites directly at the wide-screen pivot location.
-    sep #$20                ; kick into 8-bit mode.
-    xba                     ; swap upper byte -- it uses it to check whether a sprite should be displayed (original code).
-    and #$fe                ; Checking clipping to be an extra byte large from the original logic.
-    rtl
-}
+    rm_ex_lrg_sprite_shft_chocobo: %rm_ex_lrg_sprite_shft($20)
+    rm_ex_lrg_sprite_shft_magitek: %rm_ex_lrg_sprite_shft($1e)
 
 ;===================================================================
 ; Section:
@@ -470,28 +491,6 @@ exp_draw_bnds_reg_sprite:
 ; 3 - Mini-map displayed on the mid-left.
 ; 4 - Mini-map displayed on the far-left.
 ;
-pushpc
-{
-    ; Overworld - Mini-map shift.
-    ;org $ee40d3
-    ;lda #$fe               ; make 9th bit of OAM table 2 negative for most of mini-map (except left edge).
-    ; Cycles ex-map states.
-    org $ee202f
-    jsl mmap_set_cfg
-    nop #2
-    ; Loads initial mini-map offset based on current ex-map state.
-    org $ee4153
-    jsl mmap_apply_cfg
-    ; Sets map sprite x-address and OAM2 table entries.
-    org $ee4164
-    jsl mmap_set_map_loc
-    nop #2
-    ; Sets marker x-address and OAM2 table entry.
-    org $ee41c7
-    jsl mmap_set_marker_loc ;
-}
-pullpc
-
 mmap_set_cfg:
 {
     ; Implements logic for setting up 5 different states to cycle through when the mini-map button toggle is
@@ -528,29 +527,22 @@ mmap_apply_cfg:
     xba                     ; swap upper and lower byte so we can set the upper byte.
     lda $15ff               ; load the current ex-map state.
     ; State 1 - Mid-right.
-    cmp #$01                ; Check if state is 1.
-    bne +
+    cmp #$01 : bne +        ; Check if state is 1.
     lda #$00                ; high byte address of x coord (positive region).
-    ldy #$f0                ; Start map at x = 240
-    bra ++
+    ldy #$f0 : bra ++       ; Start map at x = 240
     +:
     ; State 2 - Far-right.
-    cmp #$02                ; Check if state is 2.
-    bne +
+    cmp #$02 : bne +        ; Check if state is 2.
     lda #$01                ; high byte address of x coord (negative region).
-    ldy #$00                ; start map at x = -256
-    bra ++
+    ldy #$00 : bra ++       ; start map at x = -256
     +:
     ; State 3 - Mid-left.
-    cmp #$03                ; Check if state is 3.
-    bne +
+    cmp #$03 : bne +        ; Check if state is 3.
     lda #$01                ; high byte address of x coord (negative region).
-    ldy #$d0                ; start map at x = -48
-    bra ++
+    ldy #$d0 : bra ++       ; start map at x = -48
     +:
     ; State 4 - Far-left.
-    cmp #$04                ; Check if state is 4.
-    bne ++
+    cmp #$04 : bne ++       ; Check if state is 4.
     lda #$01                ; high byte address of x coord (negative region).
     ldy #$c0                ; start map at x = -64
     ++:
@@ -615,31 +607,23 @@ mmap_set_marker_loc:
     sep #$10                ; set 8-bit x,y mode.
     ldx $15ff               ; load current ex-map state.
     ; State 1 - Mid-right.
-    cpx #$01                ; Check if state is 1.
-    bne +
-    sec
-    sbc #$0010              ; Orient marker.
+    cpx #$01 : bne +        ; Check if state is 1.
+    sec : sbc #$0010        ; Orient marker.
     bra ++
     +:
     ; State 2 - Far-right.
-    cpx #$02                ; Check if state is 2.
-    bne +
+    cpx #$02 : bne +        ; Check if state is 2.
     bra ++                  ; No need to orient marker.
     +:
     ; State 3 - Mid-left.
-    cpx #$03                ; Check if state is 3.
-    bne +
-    clc
-    adc #$00d0              ; orient marker.
+    cpx #$03 : bne +        ; Check if state is 3.
+    clc : adc #$00d0        ; orient marker.
     bra ++
     +:
     ; State 4 - Far-left.
-    cpx #$04                ; Check if state is 4.
-    bne ++
-    clc
-    adc #$00c0              ; orient marker.
+    cpx #$04 : bne ++       ; Check if state is 4.
+    clc : adc #$00c0        ; orient marker.
     ++:
-
     sep #$20                ; set 8-bit a mode.
     pha                     ; push x-coordinate (can't transfer or it affects the negative flag).
     bmi +                   ; Check if in negative range.
@@ -658,6 +642,15 @@ mmap_set_marker_loc:
     rtl
 }
 
+pushpc
+{
+    %jsl_nop2($ee202f, mmap_set_cfg)        ; Cycles ex-map states.
+    %jsl($ee4153, mmap_apply_cfg)           ; Loads initial mini-map offset based on current ex-map state.
+    %jsl_nop2($ee4164, mmap_set_map_loc)    ; Sets map sprite x-address and OAM2 table entries.
+    %jsl($ee41c7, mmap_set_marker_loc)      ; Sets marker x-address and OAM2 table entry.
+}
+pullpc
+
 ;===================================================================
 ; Section:
 ; @ BG Buffer Size
@@ -672,46 +665,26 @@ mmap_set_marker_loc:
 pushpc
 {
     ; Modify buffers to be 512x256.
-    org $c005b7             ; BG1
-    lda #$49
-    org $c03f1f             ; BG1
-    lda #$49
-    org $c005bc             ; BG2
-    lda #$51
-    org $c03f2d             ; BG2
-    lda #$51
-    org $c005c1             ; BG3
-    lda #$59
-    org $c03f49             ; BG3
-    lda #$59
-    ;org $c03f17            ; BG1 - msgbox
-    ;lda #$41
-    ;org $c03f3b            ; BG2 - text
-    ;lda #$45
+    %lda($c005b7, #$49)     ; BG1 - main
+    %lda($c03f1f, #$49)     ; BG1 - main
+    %lda($c005bc, #$51)     ; BG2 - main
+    %lda($c03f2d, #$51)     ; BG2 - main
+    %lda($c005c1, #$59)     ; BG3 - main
+    %lda($c03f49, #$59)     ; BG3 - main
+    ;%lda($c03f17, #$41)    ; BG1 - msgbox
+    ;%lda($c03f3b, #$45)    ; BG2 - text
     ; Keep register size at 512x256 during disabled buffer swap by flipping the first bit high.
     ; Disable store back of "new" buffer address to a memory location used for address computations.
-    org $c03f63             ; BG1
-    eor #$01
-    nop #3
-    org $c03f83             ; BG2
-    eor #$01
-    nop #3
-    org $c03fa3             ; BG3
-    eor #$01
-    nop #3
+    %eor_nop3($c03f63)      ; BG1
+    %eor_nop3($c03f83)      ; BG2
+    %eor_nop3($c03fa3)      ; BG3
     ; Remove pixel masking along edges.
-    org $c005e7             ; left coordinate: town/dungeon.
-    lda #$00
-    org $c005ec             ; right coordinate: town/dungeon.
-    lda #$ff
-    org $ee9003             ; left coordinate: overworld.
-    lda #$00
-    org $ee9008             ; right coordinate: overworld.
-    lda #$ff
-    ;org $d4cdc6            ; left coordinate: load menu.
-    ;lda #$00
-    ;org $d4cdce            ; right coordinate: load menu.
-    ;lda #$ff
+    %lda($c005e7, #$00)     ; left coordinate: town/dungeon.
+    %lda($c005ec, #$ff)     ; right coordinate: town/dungeon.
+    %lda($ee9003, #$00)     ; left coordinate: overworld.
+    %lda($ee9008, #$ff)     ; right coordinate: overworld.
+    ;%lda($d4cdc6, #$00)    ; left coordinate: load menu.
+    ;%lda($d4cdce, #$ff)    ; right coordinate: load menu.
 }
 pullpc
 
@@ -732,14 +705,10 @@ pullpc
 pushpc
 {
     ; Remove 8 pixel shift to left for x-scroll registers.
-    org $c042e1             ; BG1
-    nop #4
-    org $c042ba             ; BG2
-    nop #4
-    org $c04317             ; BG2
-    nop #4
-    org $c0434d             ; BG3
-    nop #4
+    %nop4($c042e1)          ; BG1
+    %nop4($c042ba)          ; BG2
+    %nop4($c04317)          ; BG2
+    %nop4($c0434d)          ; BG3
     ; Changes tilemap x-scrolling to begin at 13 tiles in instead of 8.
     org $c07e32             ; BG1, BG2, BG3
     nop
@@ -748,8 +717,7 @@ pushpc
     org $c017a3
     sbc #$0c
     ; Change pivot on load
-    org $c0179a
-    lda #$0c
+    %lda($c0179a, #$0c)
 }
 pullpc
 
@@ -775,7 +743,6 @@ pullpc
 ;
 ; Entering an area resets buffer pointers to the first location.
 ;
-
 macro full_tile_pivot_algo(addr)
     ; Modifies the pivot location. Zeros out if underflow due to the pivot being in the
     ; right half of the buffer so the first half just updates starting at 0x0. Computes
@@ -992,23 +959,6 @@ macro row_tile_ld_bg12(src, dest)
     and #$7f                ; Clip high bit for roll around of BG1, BG2 buffers addresses.
 endmacro
 
-pushpc
-{
-    ; BG1 Row Tile Load (inline replace):
-    org $c0218c
-    %row_tile_ld_bg12($c000, $3d6000)
-
-}
-pullpc
-
-pushpc
-{
-    ; BG2 Row Tile Load (inline replace):
-    org $c02307
-    %row_tile_ld_bg12($c800, $3d7000)
-}
-pullpc
-
 row_tile_ld_bg3_shf:
     ; BG3 row load helper subroutine that contains the logic
     ; for shifting the buffer location to the right buffer
@@ -1095,42 +1045,30 @@ macro row_tile_ld_bg3()
     beq +++                 ; Original  instruction.
     ; Load / Store tile.
     pla                     ; Optimized instruction.
-    sta $d9c0, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
-    sta $d9c2, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
-    sta $da00, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
+    sta $d9c0, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $d9c2, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $da00, y : inc      ; Moved buffer (expanded for widescreen).
     sta $da02, y            ; Moved buffer (expanded for widescreen).
     bra ++++                ; Original  instruction.
     +:
     pla                     ; Optimized instruction.
-    sta $d9c2, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
-    sta $d9c0, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
-    sta $da02, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
+    sta $d9c2, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $d9c0, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $da02, y : inc      ; Moved buffer (expanded for widescreen).
     sta $da00, y            ; Moved buffer (expanded for widescreen).
     bra ++++
     ++:
     pla                     ; Optimized instruction.
-    sta $da00, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
-    sta $da02, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
-    sta $d9c0, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; Original  instruction.
+    sta $da00, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $da02, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $d9c0, y : inc      ; Moved buffer (expanded for widescreen).
     sta $d9c2, y            ; Moved buffer (expanded for widescreen).
     bra ++++
     +++:
     pla                     ; Optimized instruction.
-    sta $da02, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; original  instruction.
-    sta $da00, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; original  instruction.
-    sta $d9c2, y            ; Moved buffer (expanded for widescreen).
-    inc                     ; original  instruction.
+    sta $da02, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $da00, y : inc      ; Moved buffer (expanded for widescreen).
+    sta $d9c2, y : inc      ; Moved buffer (expanded for widescreen).
     sta $d9c0, y            ; Moved buffer (expanded for widescreen).
     ++++:
     lda $00055c
@@ -1148,6 +1086,12 @@ endmacro
 
 pushpc
 {
+    ; BG1 Row Tile Load (inline replace):
+    org $c0218c
+    %row_tile_ld_bg12($c000, $3d6000)
+    ; BG2 Row Tile Load (inline replace):
+    org $c02307
+    %row_tile_ld_bg12($c800, $3d7000)
     ; BG3 Row Tile Load (inline replace):
     org $c02477
     %row_tile_ld_bg3()
@@ -1202,9 +1146,6 @@ endmacro
 ; The max possible coordinate in a map is 127 or 0x7F before they loop
 ; around so coordinates need clamped after that.
 ;
-
-;----
-
 macro col_dma_adr_mod_algo(src, dest1, dest2)
     ; Modify VRAM store location for certain coordinate ranges (32-63, 96-127, etc.).
     pha         ; 48        ; push a
