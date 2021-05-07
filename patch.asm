@@ -666,6 +666,7 @@ mmap_set_marker_loc:
 ;   Buffer size modifications.
 ;
 ; - Increase buffer size.
+; - Keep BG in 512x256 mode during full screen buffer updates.
 ; - Remove pixel masks for screen edges.
 ;
 pushpc
@@ -687,6 +688,17 @@ pushpc
     ;lda #$41
     ;org $c03f3b            ; BG2 - text
     ;lda #$45
+    ; Keep register size at 512x256 during disabled buffer swap by flipping the first bit high.
+    ; Disable store back of "new" buffer address to a memory location used for address computations.
+    org $c03f63             ; BG1
+    eor #$01
+    nop #3
+    org $c03f83             ; BG2
+    eor #$01
+    nop #3
+    org $c03fa3             ; BG3
+    eor #$01
+    nop #3
     ; Remove pixel masking along edges.
     org $c005e7             ; left coordinate: town/dungeon.
     lda #$00
@@ -746,113 +758,33 @@ pullpc
 ; @ BG Full Updates
 ;
 ; Description:
-;   Full buffer update modifications (only used when needing to update on-screen elements in an existing buffer).
+;   Full buffer update modifications. Only used when needing to update
+;   on-screen elements in an existing buffer?
 ;
 ; - Disable buffer swapping during full screen buffer updates.
-; - Keep BG in 512x256 mode during full screen buffer updates.
 ; - Modify tile data loaded for wrap around areas.
 ; - Modify DMA location depending on where character is located on the screen.
 ;
-; FF6 uses a back-buffer normally, but there doesn't appear to be enough
-; VRAM to house both a 512x256 front and back buffer. It is not-clear with
-; the back buffer is really necessary. Moreover, it doesn't appear that two
-; buffers fit into VRAM memory with a 512x256 tilemap, so the secondary buffer
-; must be disabled unless expanded (128KB+) VRAM becomes supported in bsnes-hd.
+; FF6 uses a back-buffers normally for full-screen updates, but there isn't
+; enough BRAM to house 512x256 front and back buffers without snes VRAM
+; expansion (128KB). It is not-clear whether the back buffers are necessary.
 ;
-; Internally, ff6 appears to use BG1 VRAM buffer addresses high-word with
-; ORing logic to determine what the BG1SC (2107) register should be set to.
-; The address is either 0x4800 or 0x4c000 depending on whether a buffer swap
-; has occurred. The pointer updates when opening doors or chests (and probably
-; during other events?). Exiting an area will reset the pointer to 0x4800. For
-; a 512x256 tilemap size, the low-bit of the BGSC1 register needs to be high.
+; BG1 buffers: 0x4800 or 0x4c00 - swapped on opening doors and chests.
+; BG2 buffers: 0x5000 or 0x5400 - swapped in cave?
+; BG3 buffers: 0x5800 or 0x5c00 - swapped sometime?
 ;
-; Internally, ff6 appears to use BG2 VRAM buffer addresses high-word with
-; ORing logic to determine what the BG2SC (2108) register should be set to.
-; The address is either 0x5000 or 0x54000 depending on whether a buffer swap
-; has occurred. The pointer updates when in caves and ????????????????????????
-; ?????????????????????? Exiting an area will reset the pointer to 0x5000. For
-; a 512x256 tilemap size, the low-bit of the BGSC2 register needs to be high.
-;
-; Internally, ff6 appears to use BG3 VRAM buffer addresses high-word with
-; ORing logic to determine what the BG3SC (2109) register should be set to.
-; The address is either 0x5800 or 0x5c000 depending on whether a buffer swap
-; has occurred. The pointer updates when ?????????????????????????????????????
-; ?????????????????????? Exiting an area will reset the pointer to 0x5800. For
-; a 512x256 tilemap size, the low-bit of the BGSC3 register needs to be high.
+; Entering an area resets buffer pointers to the first location.
 ;
 
-pushpc
-{
-    ; Keep register size at 512x256 during disabled buffer swap by flipping the first bit high.
-    ; Disable store back of "new" buffer address to a memory location used for address computations.
-    org $c03f63             ; BG1
-    eor #$01
-    nop #3
-    org $c03f83             ; BG2
-    eor #$01
-    nop #3
-    org $c03fa3             ; BG3
-    eor #$01
-    nop #3
-    ; Modify pivot.
-    org $c01f2c             ; BG1
-    jsl full_tile_pivot_bg1
-    org $c01fe9             ; BG2
-    jsl full_tile_pivot_bg2
-    org $c020a6             ; BG3
-    jsl full_tile_pivot_bg3
-    ; Modify column load locations and jump past original load/store tile buffering logic.
-    org $c01f6b             ; BG1
-    jsl full_tile_ld_bg1
-    bra +$1a
-    org $c02028             ; BG2
-    jsl full_tile_ld_bg2
-    bra +$1a
-    ;org $000000            ; BG3 : Seems to use the row load code instead.
-    ;jsl full_tile_ld_bg3
-    ;bra +$1a
-    ; clobbers an eor #$04 buffer addr update.
-    org $c01f37             ; BG1
-    nop #2
-    org $c01ff4             ; BG2
-    nop #2
-    org $c020b1             ; BG3
-    nop #2
-    ; corrects dest start location.
-    org $c01f42             ; BG1
-    and #$5f
-    org $c01fff             ; BG2
-    and #$5f
-    org $c020bc             ; BG3
-    and #$5f
-    ; Double the amount of columns looped.
-    org $c01f61             ; BG1
-    lda #$20
-    org $c0201e             ; BG2
-    lda #$20
-    ;org $c020d7             ; BG3
-    ;lda #$20
-    ; Remove destination clipping.
-    org $c01f8e             ; BG1
-    nop #3
-    org $c0204b             ; BG2
-    nop #3
-    ;org $000000            ; BG3 : Seems to use the row load code instead.
-    ;nop #3
-}
-pullpc
-
-;----
-
-macro full_tile_pivot(addr)
+macro full_tile_pivot_algo(addr)
     ; Modifies the pivot location. Zeros out if underflow due to the pivot being in the
     ; right half of the buffer so the first half just updates starting at 0x0. Computes
     ; a normalization factor to figure out when wrap-around occurs during tile buffering
     ; I.e. when shifting from the right side of the buffer back to the left side.
     sbc #$0b                ; -11 instead of -7.
-    bpl .end                ; Check for underflow (below 0)
+    bpl +                   ; Check for underflow (below 0)
     lda #$00                ; Set to zero if underflow.
-    .end:
+    +:
     and <addr>              ; Original instruction.
     tax
     rep #$20    ; e220      ; set 16-bit accum mode.
@@ -863,24 +795,21 @@ macro full_tile_pivot(addr)
     rtl
 endmacro
 
-full_tile_pivot_bg1:
-{
-    %full_tile_pivot($86)
-}
+macro full_tile_pivot(loc, piv)
+    pushpc
+    {
+        org <loc>
+        jsl +                ; Modify pivot.
+        skip +$07
+        nop #2               ; clobbers an eor #$04 buffer addr update.
+        skip +$09
+        and #$5f             ; corrects dest start location.
+    }
+    pullpc
+    +: %full_tile_pivot_algo(<piv>)
+endmacro
 
-full_tile_pivot_bg2:
-{
-    %full_tile_pivot($88)
-}
-
-full_tile_pivot_bg3:
-{
-    %full_tile_pivot($8a)
-}
-
-;----
-
-macro full_tile_ld(src, dest)
+macro full_tile_ld_algo(src, dest)
     ; Buffers tiles for an entire 512x256 BG on a per tile basis. This
     ; is modified logic to account for storing data to two non-contigious
     ; buffers in VRAM (thanks SNES VRAM address space).
@@ -924,23 +853,31 @@ macro full_tile_ld(src, dest)
     plx                     ; restore dest addr (before we modded it).
     txa                     ; transfer dest addr to accum.
     rtl                     ; return.
-}
 endmacro
 
-full_tile_ld_bg1:
-{
-    %full_tile_ld($c000, $3d6000)
-}
+macro full_tile_ld(loc, piv, src, dest)
+    ; Row DMA for second half of BG buffers.
+    %full_tile_pivot(<loc>, <piv>)
+    pushpc
+    org <loc>+$16
+    and #$5f                ; corrects dest start location.
+    skip +$1d
+    lda #$20                ; Double the amount of columns looped.
+    skip +$08
+    jsl ++                  ; Modify column load locations.
+    bra +$1a                ; Jump past old leftover load/store tile logic.
+    skip +$1d
+    nop #3                  ; Remove destination clipping.
+    pullpc
+    ++: %full_tile_ld_algo(<src>, <dest>)
+endmacro
 
-full_tile_ld_bg2:
-{
-    %full_tile_ld($c800, $3d7000)
-}
-
-;full_tile_ld_bg3:
-;{
-;    %full_tile_ld($3e6000)
-;}
+; BG1 full tile load mods.
+%full_tile_ld($c01f2c, $86, $c000, $3d6000)
+; BG2 full tile load mods.
+%full_tile_ld($c01fe9, $88, $c800, $3d7000)
+; BG3 full tile load mods (mostly uses the row update code).
+%full_tile_pivot($c020a6, $8a)
 
 ;----
 
