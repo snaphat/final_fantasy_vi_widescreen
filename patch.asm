@@ -184,6 +184,9 @@ org  $c0d613
 ;       Raw : EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
 ;       Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
 ;
+ ; @ Tile Layout Fixes:
+;   Mountains Parallex : Cloud Fixes.
+;   Mt. Kolt's Vargas' Area : Surrounding Mountain Fixes.
 
 ;===================================================================
 ; Section:
