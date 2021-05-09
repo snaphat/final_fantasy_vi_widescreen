@@ -185,8 +185,10 @@ org  $c0d613
 ;       Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
 ;
  ; @ Tile Layout Fixes:
-;   Mountains Parallex : Cloud Fixes.
-;   Mt. Kolt's Vargas' Area : Surrounding Mountain Fixes.
+;   Mt. Kolts: Entrance : Shift BG2 Background.
+;   Mt. Kolts: Exterior (BG1) : Bottom-right Mountain Fixes.
+;   Mt. Kolts: Vargas' Area (BG1, BG2) : Surrounding Mountain Fixes.
+;   Mountains Parallex (BG2): Cloud Fixes.
 
 ;===================================================================
 ; Section:

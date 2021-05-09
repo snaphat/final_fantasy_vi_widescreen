@@ -5131,7 +5131,8 @@
         "0xD8EE47-0xD8F000",
         "0xD9CC4C-0xD9CD10",
         "0xD9CD66-0xD9CD90",
-        "0xD9D1AD-0xDE0000",
+        "0xD9D1AD-0xD9D1B0",
+        "0xDDFFEA-0xDE0000",
         "0xDFD978-0xDFDA00",
         "0xE5FEC6-0xE60000",
         "0xE68492-0xE68780",
@@ -5143,8 +5144,7 @@
         "0xEDFCAA-0xEDFE00",
         "0xEDFFA7-0xEDFFD0",
         "0xEEAF01-0xEEB200",
-        "0xEFFBC8-0xEFFEF0",
-        "0x00F42E7B-0x01000000"
+        "0xEFFBC8-0xEFFEF0"
     ],
     "assembly": {
         "attackGraphics2bpp": {
@@ -8143,7 +8143,6 @@
                 "Tent: Animation": "0xCA00EA",
                 "Warp: Animation": "0xCA0108",
                 "Tent: Animation (World)": "0xCA015E",
-                "Kefka's Tower": "0xCC104D",
                 "Phoenix Cave": "0xCA0405",
                 "Final Battle/Ending": "0xCA057D",
                 "Floating Island: Cinematic": "0xCA5ADE",
@@ -8206,6 +8205,7 @@
                 "Darill's Tomb: Entrance": "0xCAF1A2",
                 "Darill's Tomb: Upstairs": "0xCAF1C0",
                 "Darill's Tomb: Downstairs": "0xCAF205",
+                "Kefka's Tower": "0xCC104D",
                 "Kefka's Tower: Top": "0xCAF2AD",
                 "Floating Island: Exterior (Start of Collapse)": "0xCAF2B1",
                 "Floating Island: Exterior (Collapsing)": "0xCAF2B5",
@@ -9600,7 +9600,7 @@
         "mapLayouts": {
             "type": "array",
             "name": "Map Layouts",
-            "range": "0xF00000-0xF42E7B",
+            "range": "0xD9D1B0-0xDDFFEA",
             "stringTable": "mapLayouts",
             "canRelocate": true,
             "reference": [
@@ -9673,7 +9673,7 @@
                     }
                 ],
                 "pointerLength": 3,
-                "offset": "0xF00000"
+                "offset": "0xD9D1B0"
             }
         },
         "mapOverlayGraphics": {
@@ -14102,8 +14102,8 @@
             }
         }
     },
-    "length": "0x400000",
-    "crc32": "0x8ABB76A1",
+    "length": "0x300000",
+    "crc32": "0x397DF77F",
     "system": "sfc",
     "mode": "hiROM",
     "hierarchy": [
