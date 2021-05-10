@@ -57,6 +57,14 @@ org  $c0d613
 ;       $0545 : BG3 current x-coordinate pivot.
 ;       $0546 : BG3 current y-coordinate pivot.
 ;
+;       $055a : BG1 Fullscreen update index. 4: Buffer top-half-tiles, 3: Buffer bottom-half-tiles, 2: DMA Top-half-tiles, 1: DMA bottom-half-tiles, 0: do nothing.
+;       $055b : BG2 Fullscreen update index. 4: Buffer top-half-tiles, 3: Buffer bottom-half-tiles, 2: DMA Top-half-tiles, 1: DMA bottom-half-tiles, 0: do nothing.
+;       $055c : BG3 Fullscreen update index. 4: Buffer top-half-tiles, 3: Buffer bottom-half-tiles, 2: DMA Top-half-tiles, 1: DMA bottom-half-tiles, 0: do nothing.
+;
+;       $058c : Current BG1 VRAM buffer address.
+;       $058e : Current BG2 VRAM buffer address.
+;       $0590 : Current BG3 VRAM buffer address.
+;
 ;       $0547 : Added to $73 -- dunno.
 ;
 ;       $062c : X-Scroll start + Camera start?

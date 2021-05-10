@@ -5132,7 +5132,7 @@
         "0xD9CC4C-0xD9CD10",
         "0xD9CD66-0xD9CD90",
         "0xD9D1AD-0xD9D1B0",
-        "0xDDFFEA-0xDE0000",
+        "0xDDFFEE-0xDE0000",
         "0xDFD978-0xDFDA00",
         "0xE5FEC6-0xE60000",
         "0xE68492-0xE68780",
@@ -8143,6 +8143,7 @@
                 "Tent: Animation": "0xCA00EA",
                 "Warp: Animation": "0xCA0108",
                 "Tent: Animation (World)": "0xCA015E",
+                "Kefka's Tower": "0xCC104D",
                 "Phoenix Cave": "0xCA0405",
                 "Final Battle/Ending": "0xCA057D",
                 "Floating Island: Cinematic": "0xCA5ADE",
@@ -8205,7 +8206,6 @@
                 "Darill's Tomb: Entrance": "0xCAF1A2",
                 "Darill's Tomb: Upstairs": "0xCAF1C0",
                 "Darill's Tomb: Downstairs": "0xCAF205",
-                "Kefka's Tower": "0xCC104D",
                 "Kefka's Tower: Top": "0xCAF2AD",
                 "Floating Island: Exterior (Start of Collapse)": "0xCAF2B1",
                 "Floating Island: Exterior (Collapsing)": "0xCAF2B5",
@@ -9600,7 +9600,7 @@
         "mapLayouts": {
             "type": "array",
             "name": "Map Layouts",
-            "range": "0xD9D1B0-0xDDFFEA",
+            "range": "0xD9D1B0-0xDDFFEE",
             "stringTable": "mapLayouts",
             "canRelocate": true,
             "reference": [
@@ -9899,7 +9899,8 @@
                         "name": "Tile Layout",
                         "stringTable": "mapLayouts",
                         "begin": 13,
-                        "mask": "0x03FF"
+                        "mask": "0x03FF",
+                        "link": "mapLayouts[%i]"
                     },
                     "tileset1": {
                         "type": "property",
@@ -9967,7 +9968,8 @@
                         "name": "Tile Layout",
                         "stringTable": "mapLayouts",
                         "begin": 14,
-                        "mask": "0x0FFC"
+                        "mask": "0x0FFC",
+                        "link": "mapLayouts[%i]"
                     },
                     "tileset2": {
                         "type": "property",
@@ -10056,7 +10058,8 @@
                         "name": "Tile Layout",
                         "stringTable": "mapLayouts",
                         "begin": 15,
-                        "mask": "0x3FF0"
+                        "mask": "0x3FF0",
+                        "link": "mapLayouts[%i]"
                     },
                     "gfxLayer3": {
                         "type": "property",
@@ -13996,7 +13999,7 @@
         "worldPalette3": {
             "type": "assembly",
             "name": "Serpent Trench Palette",
-            "range": "0xD8E6BA-0xD8E800",
+            "range": "0xD8E6BA-0xD8E7B1",
             "format": [
                 "bgr555",
                 "ff6-lzss"
@@ -14103,7 +14106,7 @@
         }
     },
     "length": "0x300000",
-    "crc32": "0x397DF77F",
+    "crc32": "0xA7A468A8",
     "system": "sfc",
     "mode": "hiROM",
     "hierarchy": [
