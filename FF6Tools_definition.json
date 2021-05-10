@@ -5132,7 +5132,7 @@
         "0xD9CC4C-0xD9CD10",
         "0xD9CD66-0xD9CD90",
         "0xD9D1AD-0xD9D1B0",
-        "0xDDFFEE-0xDE0000",
+        "0xDDFFE9-0xDE0000",
         "0xDFD978-0xDFDA00",
         "0xE5FEC6-0xE60000",
         "0xE68492-0xE68780",
@@ -9600,7 +9600,7 @@
         "mapLayouts": {
             "type": "array",
             "name": "Map Layouts",
-            "range": "0xD9D1B0-0xDDFFEE",
+            "range": "0xD9D1B0-0xDDFFE9",
             "stringTable": "mapLayouts",
             "canRelocate": true,
             "reference": [
@@ -14106,7 +14106,7 @@
         }
     },
     "length": "0x300000",
-    "crc32": "0xA7A468A8",
+    "crc32": "0xB390A377",
     "system": "sfc",
     "mode": "hiROM",
     "hierarchy": [

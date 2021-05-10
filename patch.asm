@@ -192,11 +192,18 @@ org  $c0d613
 ;       Raw : EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
 ;       Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
 ;
- ; @ Tile Layout Fixes:
+; @ Tile Layout Fixes:
+;   Chocobo Stable: Exterior (WoB WoR) (BG1, BG2) : Expanded to 32x16.
+;   Duncan's House: Exterior / Sabin's House: Exterior (BG1, BG2) : Expanded to 32x16.
 ;   Mt. Kolts: Entrance : Shift BG2 Background.
 ;   Mt. Kolts: Exterior (BG1) : Bottom-right Mountain Fixes.
 ;   Mt. Kolts: Vargas' Area (BG1, BG2) : Surrounding Mountain Fixes.
 ;   Mountains Parallex (BG2): Cloud Fixes.
+;
+; @ Trigger Fixes:
+;   Chocobo Stable: Interior: Change warp location on floor trigger.
+;   Duncan's House: interior: Change warp location on floor trigger.
+;   Sabin's House: Interior: Change warp location on exit house script and floor trigger (separate).
 
 ;===================================================================
 ; Section:
