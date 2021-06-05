@@ -180,14 +180,14 @@ apl_decompress:
 .skip4:         rol
                 bcc     .nibble_loop
                 beq     .write_byte             ; Offset=0 means write zero.
-
-                sta     <scratch>               ; opt: remove eor, tay, iny, dec, inc, ldy, beq.
-                lda     <dstptr>                ;      instead sbc directly, it's faster.
-                tax                             ; opt: 2-cycle.
-                sbc     <scratch>
-                sta     <dstptr>
-                lda     (<dstptr>)              ; Read the byte directly from the destination window.
-                stx     <dstptr>                ; opt: 2-cycle.
+                tyx
+                eor     #$ff                    ; Read the byte directly from
+                tay                             ; the destination window.
+                iny
+                dec     <dstptr>+1
+                lda     (<dstptr>),y
+                inc     <dstptr>+1
+                txy
                 bra     .write_byte
 
 .finished:      rep #$30                        ; Fin.
@@ -199,7 +199,7 @@ apl_decompress:
                 sep #$30
                 plb                             ; restore bank.
                 rep #$30
-                rts                             ; All decompressed!
+                rtl                             ; All decompressed!
 
                 ;
                 ; 1 1 0 dddddddn - Copy 2 or 3 within 128 bytes.
