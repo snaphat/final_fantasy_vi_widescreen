@@ -225,6 +225,9 @@ apl_decompress:
                 bcs     .normal_pair            ; CC if LWM==0 && offset==2.
                 tdc                             ; opt: clear high byte of length
                 %GET_GAMMA(<bitbuf>, <winptr>, <srcptr>) ; opt: no jsr, Get length.
+                xba                             ; non-opt: put together length.
+                lda     <winptr>+1              ; load highbyte of length.
+                xba                             ; non-opt: put together length.
                 bra     .match_minus1           ; Use previous Offset.
 
 .match_minus1:  dec     ; opt: low byte of length -1
