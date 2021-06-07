@@ -1,3 +1,4 @@
+
 ; ***************************************************************************
 ; ***************************************************************************
 ;
@@ -75,7 +76,7 @@ endmacro
 ; Macro for gamma handling.
 ; opt: duplication: removes costly jmps.
 ;
-macro GET_GAMMA(bitbuf, winptr, srcptr)
+macro GET_GAMMA(bitbuf, hilen, srcptr)
     lda     #$1                     ; Get a gamma-coded value.
 
     --:
@@ -87,7 +88,7 @@ macro GET_GAMMA(bitbuf, winptr, srcptr)
 
     ++:
     rol
-    rol     <winptr>+1
+    rol     <hilen>
     asl     <bitbuf>
     bne     ++
     tcs                             ; opt: 2-cycle.
@@ -112,26 +113,29 @@ endmacro
 ; be commented-out, since these don't occur in typical 8-bit computer usage.
 ;
 
-; Overall opts: reorder, reduce register pressure on y & x, use stack ptr, mvn, remove subroutine jumps.
-; scratch : 1-byte
-; bitbuf  : 1-byte
+; Overall opts: reduce register pressure on y & x, use stack ptr, mvn, remove subroutine jumps.
+; scratch : 2-byte. - scratch+1 must == #$00
+; hilen   : 1-byte.
+; bitbuf  : 1-byte.
 ; offset  : 2-byte.
 ; spbuf   : 2-byte.
-; winptr  : 2-byte.
+; tdstptr : 2-byte.
 ; srcptr  : 3-byte.
-; dstptr  : 3-byte.
+; dstptr  : 2-byte.
+; dstbank : const.
 
-macro APL(scratch, bitbuf, offset, spbuf, winptr, srcptr, dstptr)
+macro APL(scratch, hilen, bitbuf, offset, spbuf, tdstptr, srcptr, dstptr, dstbank)
 apl_decompress:
                 ; setup init.
                 sep     #$30
                 phb                             ; push bank.
-                lda     <dstptr>+2              ; load new bank.
+                lda     #<dstbank>               ; load new bank.
                 pha
                 plb
                 rep     #$30
                 sei                             ; disable interrupts.
-                lda     $00
+                lda     #$0000
+                sta     <scratch>               ; clear scratch.
                 sta     $004200                 ; disable nmi.
                 tsc                             ; opt: use sp as free reg.
                 sta     <spbuf>                 ; store sp.
@@ -174,20 +178,19 @@ apl_decompress:
 .copy_short:    lda     #$10
 .nibble_loop:   asl     <bitbuf>
                 bne     .skip4
-                tax                             ; opt: 2-cycle.
+                tcs                             ; opt: 2-cycle.
                 %LOAD_BIT(<bitbuf>, <srcptr>)   ; opt: no jsr.
-                txa                             ; opt: 2-cycle.
+                tsc                             ; opt: 2-cycle.
 .skip4:         rol
                 bcc     .nibble_loop
                 beq     .write_byte             ; Offset=0 means write zero.
-                tyx
-                eor     #$ff                    ; Read the byte directly from
-                tay                             ; the destination window.
-                iny
-                dec     <dstptr>+1
-                lda     (<dstptr>),y
-                inc     <dstptr>+1
-                txy
+                sta     <scratch>               ; +1 of scratch must remain zero.
+                rep     #$20
+                lda     <dstptr>
+                sbc     <scratch>
+                sta     <tdstptr>
+                sep     #$20
+                lda     (<tdstptr>)
                 bra     .write_byte
 
 .finished:      rep #$30                        ; Fin.
@@ -211,44 +214,21 @@ apl_decompress:
                 sta     <offset>                ; Preserve offset.
                 tdc                             ; opt: Clear high byte of length
                 sta     <offset>+1
-                adc     #$1                     ; opt: (-1 hoisting), Low byte of length.
-                bra     .copy_page              ; NZ from previous ADC.
+                adc     #$2                     ; +2 length.
+                jmp     .copy_page              ; NZ from previous ADC.
 
                 ;
                 ; 1 0 <offset> <length> - gamma-coded LZSS pair.
                 ;
 
-.copy_large:    %GET_GAMMA(<bitbuf>, <winptr>, <srcptr>) ; opt: no jsr, Get length.
+.copy_large:    %GET_GAMMA(<bitbuf>, <hilen>, <srcptr>) ; opt: no jsr, Get length.
+                stz     <hilen>                 ; opt: clear highbyte of length.
                 cpx     #$1                     ; CC if LWM==0, CS if LWM==1.
                 sbc     #$2                     ; -3 if LWM==0, -2 if LWM==1.
-                stz     <winptr>+1              ; opt: clear highbyte of window.
                 bcs     .normal_pair            ; CC if LWM==0 && offset==2.
-                tdc                             ; opt: clear high byte of length
-                %GET_GAMMA(<bitbuf>, <winptr>, <srcptr>) ; opt: no jsr, Get length.
-                xba                             ; non-opt: put together length.
-                lda     <winptr>+1              ; load highbyte of length.
-                xba                             ; non-opt: put together length.
-                bra     .match_minus1           ; Use previous Offset.
 
-.match_minus1:  dec     ; opt: low byte of length -1
-
-.copy_page:     ; opt: mvn, Calc address of match and store.
-                sty     <scratch>               ; opt: 2-cycle, store srcptr lowbyte.
-                rep #$30
-                tcs                             ; opt: 2-cycle, store 2 byte length.
-                lda     <dstptr>                ; load precomputed destptr.
-                tay                             ; transfer cur dest.
-                sec                             ; non opt: need to keep this.
-                sbc     <offset>                ; opt: subtract full offset in one go.
-                tax                             ; transfer src.
-                tsc                             ; opt: 2-cycle, load 2 byte length.
-                mvn     $7f, $7f                ; opt: mvn.
-                sty     <dstptr>                ; opt: free computation of next dstptr
-                sep     #$30
-                ldx     #$01                    ; transfer 1 to x. ; LWM=1.
-                ldy     <scratch>               ; opt: 2-cycle, load srcptr lowbyte.
-                jmp     .next_tag
-
+                %GET_GAMMA(<bitbuf>, <hilen>, <srcptr>) ; opt: no jsr, Get length.
+                bcc     .copy_page              ; Use previous Offset.
 
 .normal_pair:   tax                             ; opt: keep for cmp.
                 stx     <offset>+1              ; Save bits 8..15 of offset.
@@ -256,23 +236,50 @@ apl_decompress:
                 %GET_SRC(<srcptr>)              ; opt: no jsr.
                 sta     <offset>                ; Save bits 0...7 of offset.
 
-                %GET_GAMMA(<bitbuf>, <winptr>, <srcptr>)  ; opt: no jsr.
-                xba                             ; non-opt: put together length.
-                lda     <winptr>+1              ; load highbyte of length.
-                xba                             ; non-opt: put together length.
+                %GET_GAMMA(<bitbuf>, <hilen>, <srcptr>)  ; opt: no jsr.
 
-                ; opt: instruction hoisting & reduction, removal of adcs, dec, inc.
+                ;
                 cpx     #$00                    ; If offset <    256.
                 beq     .lt256
                 cpx     #$7D                    ; If offset >= 32000, length += 1.
-                bcs     .match_plus1
+                bcs     .match_plus2
                 cpx     #$05                    ; If offset >=  1280, length += 0.
-                bcs     .copy_page
-                bra     .match_minus1
-.lt256:         ldx     <offset>                ; If offset <    128, length += 1.
-                bmi     .match_minus1
+                bcs     .match_plus1
 
-.match_plus1:   inc
-                bra     .copy_page
+.copy_page:     ; opt: mvn, Calc address of match and store.
+                xba                             ; non-opt: put together length.
+                lda     <hilen>                 ; load highbyte of length.
+                xba                             ; non-opt: put together length.
+                dec
+                sty     <scratch>               ; opt: 2-cycle, store srcptr lowbyte.
+                rep     #$30
+                tcs                             ; opt: 2-cycle, store 2 byte length.
+                lda     <dstptr>                ; load precomputed destptr.
+                tay                             ; transfer cur dest.
+                sec                             ; non opt: need to keep this.
+                sbc     <offset>                ; opt: subtract full offset in one go.
+                tax                             ; transfer src.
+                tsc                             ; opt: 2-cycle, load 2 byte length.
+                mvn     <dstbank>, <dstbank>    ; opt: mvn.
+                sty     <dstptr>                ; opt: free computation of next dstptr
+                sep     #$30
+                ldx     #$01                    ; transfer 1 to x. ; LWM=1.
+                ldy     <scratch>               ; opt: 2-cycle, load srcptr lowbyte.
+                jmp     .next_tag
+
+
+.lt256:         ldx     <offset>                ; If offset <    128, length += 1.
+                bmi     .copy_page
+
+                sec
+
+.match_plus2:   adc     #$1                     ; CS, so ADC #2.
+                bcs     .match_plus256
+
+.match_plus1:   adc     #$0                     ; CS, so ADC #1, or CC if fall
+                bcc     .copy_page              ; through from .match_plus2.
+
+.match_plus256: inc     <hilen>
+
 .end:
 endmacro
