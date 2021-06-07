@@ -114,7 +114,7 @@ endmacro
 ;
 
 ; Overall opts: reduce register pressure on y & x, use stack ptr, mvn, remove subroutine jumps.
-; scratch : 2-byte. - scratch+1 must == #$00
+; scratch : 2-byte. - scratch+1 must remain #$00
 ; hilen   : 1-byte.
 ; bitbuf  : 1-byte.
 ; offset  : 2-byte.
@@ -280,6 +280,7 @@ apl_decompress:
                 bcc     .copy_page              ; through from .match_plus2.
 
 .match_plus256: inc     <hilen>
+                bra     .copy_page
 
 .end:
 endmacro
