@@ -212,8 +212,8 @@ apl_decompress:
                 beq     .finished               ; Offset 0 == EOF.
 
                 sta     <offset>                ; Preserve offset.
-                tdc                             ; opt: Clear high byte of length
-                sta     <offset>+1
+                tdc                             ; opt: Clear high byte of length.
+                sta     <offset>+1              ; clear high byte of offset.
                 adc     #$2                     ; +2 length.
                 jmp     .copy_page              ; NZ from previous ADC.
 
@@ -221,8 +221,9 @@ apl_decompress:
                 ; 1 0 <offset> <length> - gamma-coded LZSS pair.
                 ;
 
-.copy_large:    %GET_GAMMA(<bitbuf>, <hilen>, <srcptr>) ; opt: no jsr, Get length.
-                stz     <hilen>                 ; opt: clear highbyte of length.
+.copy_large:    tdc                             ; opt: Clear high byte of length
+                sta     <hilen>
+                %GET_GAMMA(<bitbuf>, <hilen>, <srcptr>) ; opt: no jsr, Get length.
                 cpx     #$1                     ; CC if LWM==0, CS if LWM==1.
                 sbc     #$2                     ; -3 if LWM==0, -2 if LWM==1.
                 bcs     .normal_pair            ; CC if LWM==0 && offset==2.
@@ -237,6 +238,9 @@ apl_decompress:
                 sta     <offset>                ; Save bits 0...7 of offset.
 
                 %GET_GAMMA(<bitbuf>, <hilen>, <srcptr>)  ; opt: no jsr.
+                xba                             ; non-opt: put together length.
+                lda     <hilen>                 ; load highbyte of length.
+                xba                             ; non-opt: put together length.
 
                 ;
                 cpx     #$00                    ; If offset <    256.
@@ -247,9 +251,6 @@ apl_decompress:
                 bcs     .match_plus1
 
 .copy_page:     ; opt: mvn, Calc address of match and store.
-                xba                             ; non-opt: put together length.
-                lda     <hilen>                 ; load highbyte of length.
-                xba                             ; non-opt: put together length.
                 dec
                 sty     <scratch>               ; opt: 2-cycle, store srcptr lowbyte.
                 rep     #$30
@@ -279,7 +280,9 @@ apl_decompress:
 .match_plus1:   adc     #$0                     ; CS, so ADC #1, or CC if fall
                 bcc     .copy_page              ; through from .match_plus2.
 
-.match_plus256: inc     <hilen>
+.match_plus256: xba                             ; rare.
+                inc
+                xba
                 bra     .copy_page
 
 .end:
