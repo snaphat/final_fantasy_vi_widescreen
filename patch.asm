@@ -5,6 +5,9 @@ fill 2445
 
 org  $c0d613
 
+;!DEBUG = ""
+
+incsrc "aplib_inject.asm"
 
 ;===================================================================
 ; @ RAM Direct Page Map:
@@ -191,6 +194,10 @@ org  $c0d613
 ;   Walk though walls in Overworld:
 ;       Raw : EE1EE2:EA+EE1EE3:EA+EE1F30:EA+EE1F31:EA+EE1F7E:EA+EE1F7F:EA+EE1FCB:EA+EE1FCC:EA
 ;       Game Genie : 3CF3-8688+3CF3-86E8+3CF7-E678+3CF7-E658+3CF5-E888+3CF5-E8E8+3CFA-ECE8+3CFA-E878
+;
+;   Load a selected map in certain locations:
+;       Raw : C01AC0:A9XXXXEA where XXXX is the map ID.
+;
 ;
 ; @ Tile Layout Fixes:
 ;   Chocobo Stable: Exterior (WoB WoR) (BG1, BG2) : Expanded to 32x16.
