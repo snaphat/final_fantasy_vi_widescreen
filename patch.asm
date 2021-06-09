@@ -201,16 +201,18 @@ incsrc "aplib_inject.asm"
 ;
 ; @ Tile Layout Fixes:
 ;   Chocobo Stable: Exterior (WoB WoR) (BG1, BG2) : Expanded to 32x16.
-;   Duncan's House: Exterior / Sabin's House: Exterior (BG1, BG2) : Expanded to 32x16.
-;   Mt. Kolts: Entrance : Shift BG2 Background.
-;   Mt. Kolts: Exterior (BG1) : Bottom-right Mountain Fixes.
-;   Mt. Kolts: Vargas' Area (BG1, BG2) : Surrounding Mountain Fixes.
-;   Mountains Parallex (BG2): Cloud Fixes.
+;   Duncan's / Sabin's House: Exterior (BG1, BG2) : Expanded to 32x16.
+;   Mt. Kolts: Entrance                           : Shift BG2 Background.
+;   Mt. Kolts: Exterior (BG1)                     : Bottom-right Mountain Fixes.
+;   Mt. Kolts: Vargas' Area (BG1, BG2)            : Surrounding Mountain Fixes.
+;   Mountains Parallex (BG2)                      : Cloud Fixes.
+;   South Figaro: Docks (BG1, BG2, BG3)           : Expanded map and enabled scrolling.
 ;
 ; @ Trigger Fixes:
-;   Chocobo Stable: Interior: Change warp location on floor trigger.
-;   Duncan's House: interior: Change warp location on floor trigger.
-;   Sabin's House: Interior: Change warp location on exit house script and floor trigger (separate).
+;   Chocobo Stable: Interior                      : Changed warp location on floor trigger.
+;   Duncan's House: interior                      : Changed warp location on floor trigger.
+;   Sabin's House: Interior                       : Changed warp location on exit house script and floor trigger (separate).
+;   South Figaro: Exterior (WoB, WoR) : Exterior  : changed warp location on dock trigger.
 
 ;===================================================================
 ; Section:

@@ -205,8 +205,7 @@
             "name": "Blitz Name",
             "default": "<attackName[%i+12]>",
             "length": 8,
-            "link": "attackName[%i+12]",
-            "string": null
+            "link": "attackName[%i+12]"
         },
         "directions": {
             "type": "stringTable",
@@ -344,8 +343,7 @@
             "name": "Lore Name",
             "default": "<attackName[%i+0x3A]>",
             "length": 24,
-            "link": "attackName[%i+0x3A]",
-            "string": null
+            "link": "attackName[%i+0x3A]"
         },
         "mapSpriteActions": {
             "type": "stringTable",
@@ -1889,8 +1887,7 @@
             "key": "attackMessage",
             "name": "Attack Message",
             "default": "<attackMessage[%i]>",
-            "length": 256,
-            "string": null
+            "length": 256
         },
         "attackPalette": {
             "type": "stringTable",
@@ -2140,8 +2137,7 @@
             "key": "battleDialog",
             "name": "Battle Dialogue",
             "default": "<battleDialog[%i]>",
-            "length": 256,
-            "string": null
+            "length": 256
         },
         "battleGroupsEvent": {
             "type": "stringTable",
@@ -3060,32 +3056,28 @@
             "key": "characterNames",
             "name": "Character Name",
             "default": "<characterNames[%i]>",
-            "length": 64,
-            "string": null
+            "length": 64
         },
         "danceName": {
             "type": "stringTable",
             "key": "danceName",
             "name": "Dance Name",
             "default": "<danceName[%i]>",
-            "length": 8,
-            "string": null
+            "length": 8
         },
         "dialog": {
             "type": "stringTable",
             "key": "dialog",
             "name": "Dialogue",
             "default": "<dialog[%i]>",
-            "length": 3084,
-            "string": null
+            "length": 3084
         },
         "esperAttackName": {
             "type": "stringTable",
             "key": "esperAttackName",
             "name": "Esper Attack Name",
             "default": "<esperAttackName[%i]>",
-            "length": 27,
-            "string": null
+            "length": 27
         },
         "esperBonusNames": {
             "type": "stringTable",
@@ -3102,8 +3094,7 @@
             "key": "esperNames",
             "name": "Esper Name",
             "default": "<esperNames[%i]>",
-            "length": 27,
-            "string": null
+            "length": 27
         },
         "itemMetamorphosis": {
             "type": "stringTable",
@@ -3155,16 +3146,14 @@
             "key": "mapAnimationProperties",
             "name": "Map Animation Properties",
             "default": "Map Animation %i",
-            "length": 20,
-            "string": null
+            "length": 20
         },
         "mapAnimationPropertiesLayer3": {
             "type": "stringTable",
             "key": "mapAnimationPropertiesLayer3",
             "name": "Map Animation Properties (Layer 3)",
             "default": "Map Animation %i (Layer 3)",
-            "length": 6,
-            "string": null
+            "length": 6
         },
         "mapBattleProbability": {
             "type": "stringTable",
@@ -3203,16 +3192,14 @@
             "key": "mapGraphics",
             "name": "Map Graphics",
             "default": "Map Graphics %i",
-            "length": 82,
-            "string": null
+            "length": 82
         },
         "mapGraphicsLayer3": {
             "type": "stringTable",
             "key": "mapGraphicsLayer3",
             "name": "Map Graphics (Layer 3)",
             "default": "Map Graphics %i (Layer 3)",
-            "length": 18,
-            "string": null
+            "length": 18
         },
         "mapLayouts": {
             "type": "stringTable",
@@ -4294,8 +4281,7 @@
             "key": "monsterAttackName",
             "name": "Monster Attack Name",
             "default": "<monsterAttackName[%i]>",
-            "length": 384,
-            "string": null
+            "length": 384
         },
         "monsterColosseumType": {
             "type": "stringTable",
@@ -4314,8 +4300,7 @@
             "key": "monsterDialog",
             "name": "Monster Dialogue",
             "default": "<monsterDialog[%i]>",
-            "length": 256,
-            "string": null
+            "length": 256
         },
         "monsterGraphics": {
             "type": "stringTable",
@@ -5063,8 +5048,7 @@
             "key": "swdTechNames",
             "name": "SwdTech Name",
             "default": "<swdTechNames[%i]>",
-            "length": 8,
-            "string": null
+            "length": 8
         },
         "vehicleEvents": {
             "type": "stringTable",
@@ -5132,7 +5116,7 @@
         "0xD9CC4C-0xD9CD10",
         "0xD9CD66-0xD9CD90",
         "0xD9D1AD-0xD9D1B0",
-        "0xDDFFE9-0xDE0000",
+        "0xDDFFD6-0xDE0000",
         "0xDFD978-0xDFDA00",
         "0xE5FEC6-0xE60000",
         "0xE68492-0xE68780",
@@ -5489,8 +5473,7 @@
                             "key": "attackProperties.status12",
                             "name": "Status",
                             "default": "<stringTable.statusNamesReversed[%i]>",
-                            "length": 16,
-                            "string": null
+                            "length": 16
                         },
                         "begin": 10,
                         "mask": "0xFFFF",
@@ -5502,8 +5485,7 @@
                             "type": "stringTable",
                             "key": "attackProperties.status34",
                             "default": "<stringTable.statusNamesReversed[%i+16]>",
-                            "length": 16,
-                            "string": null
+                            "length": 16
                         },
                         "begin": 12,
                         "mask": "0xFFFF",
@@ -8143,7 +8125,6 @@
                 "Tent: Animation": "0xCA00EA",
                 "Warp: Animation": "0xCA0108",
                 "Tent: Animation (World)": "0xCA015E",
-                "Kefka's Tower": "0xCC104D",
                 "Phoenix Cave": "0xCA0405",
                 "Final Battle/Ending": "0xCA057D",
                 "Floating Island: Cinematic": "0xCA5ADE",
@@ -8206,6 +8187,7 @@
                 "Darill's Tomb: Entrance": "0xCAF1A2",
                 "Darill's Tomb: Upstairs": "0xCAF1C0",
                 "Darill's Tomb: Downstairs": "0xCAF205",
+                "Kefka's Tower": "0xCC104D",
                 "Kefka's Tower: Top": "0xCAF2AD",
                 "Floating Island: Exterior (Start of Collapse)": "0xCAF2B1",
                 "Floating Island: Exterior (Collapsing)": "0xCAF2B5",
@@ -9112,8 +9094,7 @@
                             "key": "itemProperties.statusImmunity",
                             "name": "Immune",
                             "default": "<stringTable.statusNamesReversed[%i]>",
-                            "length": 16,
-                            "string": null
+                            "length": 16
                         },
                         "invalid": "(this.parent.itemType.value === 0) || (this.parent.itemType.value === 6)",
                         "begin": 6,
@@ -9145,8 +9126,7 @@
                             "key": "itemProperties.statusHarmful",
                             "name": "Harmful Status",
                             "default": "<stringTable.statusNamesReversed[%i+8]>",
-                            "length": 8,
-                            "string": null
+                            "length": 8
                         },
                         "invalid": "(this.parent.itemType.value < 2) || (this.parent.itemType.value === 6)",
                         "begin": 25,
@@ -9160,8 +9140,7 @@
                             "key": "itemProperties.statusItem1",
                             "name": "Status Effect",
                             "default": "<stringTable.statusNamesReversed[%i]>",
-                            "length": 16,
-                            "string": null
+                            "length": 16
                         },
                         "invalid": "this.parent.itemType.value !== 6",
                         "begin": 21,
@@ -9174,8 +9153,7 @@
                             "type": "stringTable",
                             "key": "itemProperties.statusItem2",
                             "default": "<stringTable.statusNamesReversed[%i+16]>",
-                            "length": 16,
-                            "string": null
+                            "length": 16
                         },
                         "invalid": "this.parent.itemType.value !== 6",
                         "begin": 23,
@@ -9600,7 +9578,7 @@
         "mapLayouts": {
             "type": "array",
             "name": "Map Layouts",
-            "range": "0xD9D1B0-0xDDFFE9",
+            "range": "0xD9D1B0-0xDDFFD6",
             "stringTable": "mapLayouts",
             "canRelocate": true,
             "reference": [
@@ -12485,8 +12463,7 @@
                                 "key": "npcProperties.palette",
                                 "name": "Palette",
                                 "default": "<stringTable.mapSpritePalettes[%i]>",
-                                "length": 8,
-                                "string": null
+                                "length": 8
                             },
                             "begin": 2,
                             "mask": "0x1C"
@@ -14106,7 +14083,7 @@
         }
     },
     "length": "0x300000",
-    "crc32": "0xB390A377",
+    "crc32": "0x3C50F7FD",
     "system": "sfc",
     "mode": "hiROM",
     "hierarchy": [
